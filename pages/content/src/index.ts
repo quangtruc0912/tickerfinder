@@ -2,6 +2,7 @@ import { toggleTheme } from '@src/toggleTheme';
 import { TICKER_PROCESSED, HIGHTLIGHTED_COLOR } from '@extension/shared';
 
 import _ from 'lodash';
+import TickerPopup from './TickerPopup';
 
 const injectTicker = async () => {
   const regexStr = /\$(\w)+/g;
@@ -57,3 +58,34 @@ console.log('content script loaded');
 
 void toggleTheme();
 setupInjections();
+
+document.addEventListener('mouseover', event => {
+  const target = event.target;
+
+  if (target instanceof HTMLElement && target?.dataset[TICKER_PROCESSED]) {
+    console.log('Yes Sir');
+  }
+
+  // if (shouldShowPopup(target)) {
+  //   // console.debug("Hovering over GitHub link: ", target.href);
+  //   isMouseOverLink = true;
+  //   currentHoverTarget = target;
+
+  //   if (lastTarget !== target) {
+  //     lastTarget = target;
+  //     if (currentPopup) {
+  //       currentPopup.remove();
+  //       currentPopup = null;
+  //     }
+  //   }
+
+  //   if (popupTimeout) {
+  //     clearTimeout(popupTimeout);
+  //   }
+  //   popupTimeout = setTimeout(async () => {
+  //     if (isMouseOverLink && target === currentHoverTarget) {
+  //       await createNewPopup(target);
+  //     }
+  //   }, popupDelay);
+  // }
+});
