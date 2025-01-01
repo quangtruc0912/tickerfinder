@@ -39,6 +39,7 @@ const throttledInjecTicker = _.throttle(injectTicker, 5000);
 const setupInjections = async () => {
   const globalContainer = document.createElement('div');
   document.body.appendChild(globalContainer);
+  console.log('testasdas');
   injectReact(<TickerPopup />, globalContainer);
 
   const observer = new MutationObserver(() => {

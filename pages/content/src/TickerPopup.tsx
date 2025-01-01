@@ -1,36 +1,63 @@
 import React, { useState, useEffect } from 'react';
+import { Pair } from '@extension/shared';
 import '@src/TickerPopup.css';
 
 export default function TickerPopup() {
+  const [pairs, setPairs] = useState<Pair[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('null');
   const [popupText, setPopupText] = useState('');
   const [showPopup, setShowPopup] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
-  //   const fetchTicker = async (url : string) => {
-  //     try {
-  //     //   const response = await fetch(`https://api.github.com/repos/${url}`);
-  //     //   const data = await response.json();
-  //     //   if (response.ok) {
-  //         setRepoInfo(props.name)
-  //     } catch (err) {
-  //       setError('Error fetching ticker data.');
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
-  const handleMouseOver = (e: Event) => {
+
+  const fetchTicker = async (ticker: string) => {
+    try {
+      // Make the API call
+      const response = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${ticker}`, {
+        method: 'GET',
+        headers: {},
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error fetching ticker data. Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data) {
+        console.log(data.pairs);
+        setPairs(data.pairs as Pair[]);
+      } else {
+        throw new Error('Invalid data received');
+      }
+    } catch (err: any) {
+      setError(`Error fetching ticker data: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleMouseOver = async (e: Event) => {
     const target = e.target;
 
     // Check if the target is an <a> element with a specific data attribute
     if (target instanceof HTMLElement && target.dataset.popupText) {
-      const rect = target.getBoundingClientRect();
-      setPopupPosition({
-        top: rect.top,
-        left: rect.left,
-      });
-      setPopupText(target.dataset.popupText); // Set the text content from the data attribute
       setShowPopup(true); // Show the popup
+      setIsLoading(true);
+      await fetchTicker(target.dataset.popupText);
+
+      const rect = target.getBoundingClientRect();
+
+      // Adjust for scrolling
+      const scrollTop = window.scrollY;
+      const scrollLeft = window.scrollX;
+
+      setPopupPosition({
+        top: rect.top + scrollTop,
+        left: rect.left + scrollLeft,
+      });
+
+      setPopupText(target.dataset.popupText); // Set the text content from the data attribute
     }
   };
 
@@ -65,5 +92,23 @@ export default function TickerPopup() {
     zIndex: 1000,
   };
 
-  return <div>{showPopup && <div style={popupStyle}>{popupText}</div>}</div>;
+  return (
+    <div>
+      {showPopup && (
+        <div style={popupStyle}>
+          {!isLoading ? (
+            <ul>
+              {pairs.map(pair => (
+                <li key={pair.baseToken.address}>
+                  {pair.baseToken.name} - ${pair.baseToken.symbol}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div>Loading....</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
