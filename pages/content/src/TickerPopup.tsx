@@ -1,50 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Pair } from '@extension/shared';
+import PairTable from '@extension/shared/lib/components/PairTable';
 import '@src/TickerPopup.css';
 
 export default function TickerPopup() {
-  const [pairs, setPairs] = useState<Pair[]>([]);
+  const [ticker, setTicker] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('null');
   const [popupText, setPopupText] = useState('');
   const [showPopup, setShowPopup] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+  const [isMouseOverPopup, setIsMouseOverPopup] = useState(false); // Track whether mouse is over the popup
 
-  const fetchTicker = async (ticker: string) => {
-    try {
-      // Make the API call
-      const response = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${ticker}`, {
-        method: 'GET',
-        headers: {},
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error fetching ticker data. Status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data) {
-        console.log(data.pairs);
-        setPairs(data.pairs as Pair[]);
-      } else {
-        throw new Error('Invalid data received');
-      }
-    } catch (err: any) {
-      setError(`Error fetching ticker data: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const popupRef = useRef<HTMLDivElement | null>(null); // Reference to the popup div
 
   const handleMouseOver = async (e: Event) => {
-    const target = e.target;
+    const target = e.target as HTMLElement;
 
     // Check if the target is an <a> element with a specific data attribute
-    if (target instanceof HTMLElement && target.dataset.popupText) {
+    if (target && target.dataset.popupText) {
       setShowPopup(true); // Show the popup
       setIsLoading(true);
-      await fetchTicker(target.dataset.popupText);
+
+      setTicker(target.dataset.popupText.substring(1));
 
       const rect = target.getBoundingClientRect();
 
@@ -61,52 +39,53 @@ export default function TickerPopup() {
     }
   };
 
-  const handleMouseOut = (e: Event) => {
-    const target = e.target;
-    if (target instanceof HTMLElement && target.dataset.popupText) {
+  const handleMouseOut = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+
+    // Check if the mouse left the element and is not over the popup
+    if (target && target.dataset.popupText && !popupRef.current?.contains(e.relatedTarget as Node)) {
       setShowPopup(false);
     }
   };
 
+  const handlePopupMouseOver = () => {
+    setShowPopup(true); // Ensure the popup stays visible when hovering over it
+  };
+
+  const handlePopupMouseOut = () => {
+    setShowPopup(false); // Hide the popup when the mouse leaves the popup
+  };
+
   useEffect(() => {
-    document.addEventListener('mouseover', handleMouseOver);
-    document.addEventListener('mouseout', handleMouseOut);
+    // Add the event listeners with the correct type (MouseEvent)
+    const handleMouseOverEvent = (e: MouseEvent) => handleMouseOver(e);
+    const handleMouseOutEvent = (e: MouseEvent) => handleMouseOut(e);
+
+    document.addEventListener('mouseover', handleMouseOverEvent);
+    document.addEventListener('mouseout', handleMouseOutEvent);
 
     // Cleanup event listeners when the component is unmounted
     return () => {
-      document.removeEventListener('mouseover', handleMouseOver);
-      document.removeEventListener('mouseout', handleMouseOut);
+      document.removeEventListener('mouseover', handleMouseOverEvent);
+      document.removeEventListener('mouseout', handleMouseOutEvent);
     };
   }, []);
 
   let popupStyle: React.CSSProperties = {
     position: 'absolute',
-    top: `${popupPosition.top + 20}px`, // 20px offset for better positioning
-    left: `${popupPosition.left + 20}px`, // 20px offset to the right of the element
-    backgroundColor: '#333',
-    color: 'white',
+    top: popupPosition.top,
+    left: popupPosition.left,
+    backgroundColor: 'lightgray',
     padding: '10px',
     borderRadius: '5px',
-    width: '200px',
-    boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
     zIndex: 1000,
   };
 
   return (
     <div>
       {showPopup && (
-        <div style={popupStyle}>
-          {!isLoading ? (
-            <ul>
-              {pairs.map(pair => (
-                <li key={pair.baseToken.address}>
-                  {pair.baseToken.name} - ${pair.baseToken.symbol}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div>Loading....</div>
-          )}
+        <div style={popupStyle} onMouseOver={handlePopupMouseOver} onMouseOut={handlePopupMouseOut}>
+          <PairTable ticker={ticker} />
         </div>
       )}
     </div>

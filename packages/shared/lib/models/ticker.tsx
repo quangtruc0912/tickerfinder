@@ -1,18 +1,15 @@
-export interface Root {
-  schemaVersion: string;
-  pairs: Pair[];
-}
-
 export interface Pair {
   chainId: string;
   dexId: string;
   url: string;
   pairAddress: string;
-  labels: string[];
   baseToken: BaseToken;
   quoteToken: QuoteToken;
   priceNative: string;
   priceUsd: string;
+  txns: Txns;
+  volume: Volume;
+  priceChange: PriceChange;
   liquidity: Liquidity;
   fdv: number;
   marketCap: number;
@@ -33,6 +30,47 @@ export interface QuoteToken {
   symbol: string;
 }
 
+export interface Txns {
+  m5: M5;
+  h1: H1;
+  h6: H6;
+  h24: H24;
+}
+
+export interface M5 {
+  buys: number;
+  sells: number;
+}
+
+export interface H1 {
+  buys: number;
+  sells: number;
+}
+
+export interface H6 {
+  buys: number;
+  sells: number;
+}
+
+export interface H24 {
+  buys: number;
+  sells: number;
+}
+
+export interface Volume {
+  h24: number;
+  h6: number;
+  h1: number;
+  m5: number;
+}
+
+export interface PriceChange {
+  m5: number;
+  h1: number;
+  h6: number;
+  h24: number;
+}
+
 export interface Liquidity {
   usd: number;
   base: number;
@@ -41,17 +79,20 @@ export interface Liquidity {
 
 export interface Info {
   imageUrl: string;
+  header: string;
+  openGraph: string;
   websites: Website[];
   socials: Social[];
 }
 
 export interface Website {
+  label: string;
   url: string;
 }
 
 export interface Social {
-  platform: string;
-  handle: string;
+  type: string;
+  url: string;
 }
 
 export interface Boosts {
