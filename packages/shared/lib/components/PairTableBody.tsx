@@ -1,5 +1,5 @@
 import { useEffect, useState, memo } from 'react';
-import BodyRow from './BodyRow';
+import BodyPairRow from './BodyRow';
 import { Box, Skeleton, TableBody, TableCell, TableRow } from '@mui/material';
 import { useDexScreener } from '../hooks';
 
@@ -15,6 +15,7 @@ const PairTableBody = memo(({ rowsPerPage, page, setDataLength, temp }: PairTabl
   const { data, isLoading } = useDexScreener(ticker);
 
   const dataSliced = data.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
+
   useEffect(() => {
     setTicker(temp);
     setDataLength(data.length);
@@ -23,9 +24,9 @@ const PairTableBody = memo(({ rowsPerPage, page, setDataLength, temp }: PairTabl
   return (
     <TableBody>
       {isLoading ? (
-        <BodySkeleton rows={rowsPerPage} heads={8} />
+        <BodySkeleton rows={rowsPerPage} heads={7} />
       ) : (
-        dataSliced.map(row => <BodyRow key={row.baseToken.address} row={row} />)
+        dataSliced.map(row => <BodyPairRow key={row.baseToken.address} row={row} />)
       )}
     </TableBody>
   );

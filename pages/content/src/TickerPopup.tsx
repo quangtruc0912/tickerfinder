@@ -10,7 +10,6 @@ export default function TickerPopup() {
   const [popupText, setPopupText] = useState('');
   const [showPopup, setShowPopup] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
-  const [isMouseOverPopup, setIsMouseOverPopup] = useState(false); // Track whether mouse is over the popup
 
   const popupRef = useRef<HTMLDivElement | null>(null); // Reference to the popup div
 
@@ -31,8 +30,8 @@ export default function TickerPopup() {
       const scrollLeft = window.scrollX;
 
       setPopupPosition({
-        top: rect.top + scrollTop,
-        left: rect.left + scrollLeft,
+        top: rect.top + scrollTop + rect.height, // Place the popup just below the hovered element
+        left: rect.left + scrollLeft + rect.width / 2, // Center the popup relative to the hovered element
       });
 
       setPopupText(target.dataset.popupText); // Set the text content from the data attribute
@@ -79,12 +78,24 @@ export default function TickerPopup() {
     padding: '10px',
     borderRadius: '5px',
     zIndex: 1000,
+    whiteSpace: 'nowrap', // Ensure the text stays on a single line
+    overflow: 'hidden', // Prevent overflow of the popup content
+    wordWrap: 'break-word', // Allow wrapping for long text
+    boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)', // Add a subtle shadow for visibility
+    transform: 'scale(0.9)', // Scale everything to 80% of the original size
+    transformOrigin: 'top left', // Ensure the scaling starts from the top left corner
+  };
+  const rowStyle: React.CSSProperties = {
+    padding: '5px 10px',
   };
 
+  const cellStyle: React.CSSProperties = {
+    padding: '5px 10px',
+  };
   return (
     <div>
       {showPopup && (
-        <div style={popupStyle} onMouseOver={handlePopupMouseOver} onMouseOut={handlePopupMouseOut}>
+        <div ref={popupRef} style={popupStyle} onMouseOver={handlePopupMouseOver} onMouseOut={handlePopupMouseOut}>
           <PairTable ticker={ticker} />
         </div>
       )}

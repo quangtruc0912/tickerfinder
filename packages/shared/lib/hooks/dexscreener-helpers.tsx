@@ -19,7 +19,10 @@ export function useDexScreener(ticker: string) {
       if (ticker) {
         const res = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${ticker}`, {
           method: 'GET',
-          headers: {},
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+          cache: 'no-store',
         });
 
         const data = await res.json();
@@ -30,15 +33,15 @@ export function useDexScreener(ticker: string) {
       console.log(err);
     }
   }
-
+  // interval to update the data
   useEffect(() => {
     init();
     const id = setInterval(
       () => {
         init();
       },
-      1 * 60 * 1000,
-    ); // 1 min interval to update the data
+      1 * 5 * 1000,
+    ); //
     return () => clearInterval(id);
   }, [ticker]);
   return state;
