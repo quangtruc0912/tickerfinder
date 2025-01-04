@@ -6,6 +6,7 @@ import { Pair } from '../models';
 import { styled } from '@mui/material/styles';
 import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid2';
+import { useTheme } from '@mui/material/styles';
 
 function numberFormat(num: number, options?: any) {
   let temp = 2;
@@ -26,23 +27,12 @@ function numberFormat(num: number, options?: any) {
   return new Intl.NumberFormat('en-US', { ...defaultOptions, ...options }).format(num);
 }
 
-const Item = styled(Paper)(({ theme }) => ({
-  backgroundColor: '#fff',
-  ...theme.typography.body2,
-  padding: theme.spacing(1),
-  textAlign: 'center',
-  color: theme.palette.text.secondary,
-  flexGrow: 1,
-  ...theme.applyStyles('dark', {
-    backgroundColor: '#1A2027',
-  }),
-}));
-
 interface BodyRowProps {
   row: Pair; // Typing the `row` prop as RowData
 }
 
 export default function BodyPairRow({ row }: BodyRowProps) {
+  const theme = useTheme();
   const USD = Number(row.priceUsd);
   const price = numberFormat(USD);
   const percent_change5m = Number(row.priceChange.m5).toFixed(2);
@@ -69,8 +59,19 @@ export default function BodyPairRow({ row }: BodyRowProps) {
       </Box>
     );
   };
+  const Item = styled(Paper)(({ theme }) => ({
+    backgroundColor: theme.palette.background.default,
+    ...theme.typography.body2,
+    padding: theme.spacing(1),
+    textAlign: 'center',
+    flexGrow: 1,
+  }));
   return (
-    <TableRow>
+    <TableRow
+      sx={{
+        backgroundColor: 'background.default', // Theme-aware
+        color: 'text.primary', // Theme-aware
+      }}>
       <TableCell>BUTTON</TableCell>
       <TableCell
         style={{

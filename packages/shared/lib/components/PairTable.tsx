@@ -11,37 +11,35 @@ export default function PairTable({ ticker }: PairTableProps) {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [page, setPage] = useState(0);
   const [dataLength, setDataLength] = useState(0);
-  const rowStyle: React.CSSProperties = {
-    padding: '5px 10px', // Reduced padding for the row
-  };
-
-  const cellStyle: React.CSSProperties = {
-    padding: '5px 10px', // Reduced padding for individual cells in the row
-  };
 
   return (
-    <Paper>
+    <Paper
+      sx={{
+        backgroundColor: 'background.default', // Theme-aware
+        color: 'text.primary', // Theme-aware
+      }}>
       <TableContainer>
-        <Table sx={{ minWidth: 800, '& td': { fontWeight: 700 } }}>
+        <Table
+          sx={{
+            minWidth: 800,
+            '& td': {
+              fontWeight: 700,
+              color: 'text.primary', // Theme-aware
+            },
+          }}>
           <TableHead>
-            <TableRow style={rowStyle}>
-              <TableCell style={cellStyle}>#</TableCell>
-              <TableCell style={cellStyle}>name</TableCell>
-              <TableCell style={cellStyle} align="right">
-                Price
-              </TableCell>
-              <TableCell style={cellStyle} align="right">
-                5M %
-              </TableCell>
-              <TableCell style={cellStyle} align="right">
-                1H %
-              </TableCell>
-              <TableCell style={cellStyle} align="right">
-                6H %
-              </TableCell>
-              <TableCell style={cellStyle} align="right">
-                24H %
-              </TableCell>
+            <TableRow
+              sx={{
+                backgroundColor: 'background.default', // Theme-aware
+                color: 'text.primary', // Theme-aware
+              }}>
+              <TableCell>#</TableCell>
+              <TableCell>name</TableCell>
+              <TableCell align="right">Price</TableCell>
+              <TableCell align="right">5M %</TableCell>
+              <TableCell align="right">1H %</TableCell>
+              <TableCell align="right">6H %</TableCell>
+              <TableCell align="right">24H %</TableCell>
             </TableRow>
           </TableHead>
 

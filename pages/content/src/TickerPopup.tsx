@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Pair } from '@extension/shared';
 import PairTable from '@extension/shared/lib/components/PairTable';
 import '@src/TickerPopup.css';
+import { useTheme } from '@mui/material/styles';
 
 export default function TickerPopup() {
   const [ticker, setTicker] = useState('');
@@ -10,8 +11,8 @@ export default function TickerPopup() {
   const [popupText, setPopupText] = useState('');
   const [showPopup, setShowPopup] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
-
   const popupRef = useRef<HTMLDivElement | null>(null); // Reference to the popup div
+  const theme = useTheme();
 
   const handleMouseOver = async (e: Event) => {
     const target = e.target as HTMLElement;
@@ -70,28 +71,17 @@ export default function TickerPopup() {
     };
   }, []);
 
-  let popupStyle: React.CSSProperties = {
+  const popupStyle: React.CSSProperties = {
     position: 'absolute',
     top: popupPosition.top,
     left: popupPosition.left,
-    backgroundColor: 'lightgray',
+    backgroundColor: theme.palette.background.default, // Dynamically set background
+    color: theme.palette.text.primary, // Dynamically set text color
     padding: '10px',
     borderRadius: '5px',
     zIndex: 1000,
-    whiteSpace: 'nowrap', // Ensure the text stays on a single line
-    overflow: 'hidden', // Prevent overflow of the popup content
-    wordWrap: 'break-word', // Allow wrapping for long text
-    boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)', // Add a subtle shadow for visibility
-    transform: 'scale(0.9)', // Scale everything to 80% of the original size
-    transformOrigin: 'top left', // Ensure the scaling starts from the top left corner
-  };
-  const rowStyle: React.CSSProperties = {
-    padding: '5px 10px',
   };
 
-  const cellStyle: React.CSSProperties = {
-    padding: '5px 10px',
-  };
   return (
     <div>
       {showPopup && (
