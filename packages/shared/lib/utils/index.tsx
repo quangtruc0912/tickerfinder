@@ -3,7 +3,18 @@ import { createRoot } from 'react-dom/client';
 import { useStorage } from '../hooks/useStorage';
 import { exampleThemeStorage } from '@extension/storage';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-
+declare module '@mui/material/styles' {
+  interface Palette {
+    border: {
+      default: string;
+    };
+  }
+  interface PaletteOptions {
+    border?: {
+      default: string;
+    };
+  }
+}
 const themeLight = createTheme({
   palette: {
     background: {
@@ -11,6 +22,9 @@ const themeLight = createTheme({
     },
     text: {
       primary: '#000',
+    },
+    border: {
+      default: '#ccc', // Light theme border color
     },
   },
 });
@@ -22,6 +36,9 @@ const themeDark = createTheme({
     },
     text: {
       primary: '#fff',
+    },
+    border: {
+      default: '#555', // Dark theme border color
     },
   },
 });

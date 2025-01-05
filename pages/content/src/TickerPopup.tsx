@@ -80,6 +80,7 @@ export default function TickerPopup() {
     padding: '10px',
     borderRadius: '5px',
     zIndex: 1000,
+    scale: 0.9,
   };
 
   return (

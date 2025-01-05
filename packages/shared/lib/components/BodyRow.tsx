@@ -1,5 +1,5 @@
 import { Fade, TableCell, TableRow, Box, Avatar } from '@mui/material';
-import { SwitchTransition } from 'react-transition-group';
+import { SwitchTransition, CSSTransition } from 'react-transition-group';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { Pair } from '../models';
@@ -62,9 +62,11 @@ export default function BodyPairRow({ row }: BodyRowProps) {
   const Item = styled(Paper)(({ theme }) => ({
     backgroundColor: theme.palette.background.default,
     ...theme.typography.body2,
-    padding: theme.spacing(1),
+    padding: theme.spacing(0.5),
     textAlign: 'center',
     flexGrow: 1,
+    border: `2px solid ${theme.palette.divider}`, // Thicker and more visible border
+    borderRadius: theme.shape.borderRadius, // Optional: keep border rounded for better visuals
   }));
   return (
     <TableRow
@@ -80,18 +82,44 @@ export default function BodyPairRow({ row }: BodyRowProps) {
           whiteSpace: 'nowrap', // Prevent text from wrapping
         }}>
         <Box sx={{ flexGrow: 1 }}>
-          <Grid container spacing={2}>
+          <Grid container spacing={0} rowSpacing={1}>
             <Grid size={8}>
               <Item>{row.baseToken.name}</Item>
             </Grid>
             <Grid size={4}>
-              <Item>/{row.baseToken.symbol}</Item>
+              <Item>{row.baseToken.symbol}</Item>
             </Grid>
             <Grid size={6}>
-              <Item>MktCap:{marketCap}</Item>
+              <Item>
+                <div>
+                  <span>MKT Cap:</span>
+                  <SwitchTransition>
+                    <CSSTransition
+                      key={marketCap} // Ensure unique key for transitions
+                      classNames="fade"
+                      timeout={300} // Adjust as needed for transition speed
+                    >
+                      <span>{marketCap}</span>
+                    </CSSTransition>
+                  </SwitchTransition>
+                </div>
+              </Item>
             </Grid>
             <Grid size={6}>
-              <Item>Volume:{volume_24}</Item>
+              <Item>
+                <div>
+                  <span>VOL 24H:</span>
+                  <SwitchTransition>
+                    <CSSTransition
+                      key={marketCap} // Ensure unique key for transitions
+                      classNames="fade"
+                      timeout={300} // Adjust as needed for transition speed
+                    >
+                      <span>{volume_24}</span>
+                    </CSSTransition>
+                  </SwitchTransition>
+                </div>
+              </Item>
             </Grid>
           </Grid>
         </Box>
@@ -102,26 +130,83 @@ export default function BodyPairRow({ row }: BodyRowProps) {
           <TableCell align="right">{price}</TableCell>
         </Fade>
       </SwitchTransition>
-      <SwitchTransition>
-        <Fade key={percent_change5m}>
-          <TableCell align="right">{renderPercentage(Number(percent_change5m))}</TableCell>
-        </Fade>
-      </SwitchTransition>
-      <SwitchTransition>
-        <Fade key={percent_change1h}>
-          <TableCell align="right">{renderPercentage(Number(percent_change1h))}</TableCell>
-        </Fade>
-      </SwitchTransition>
-      <SwitchTransition>
-        <Fade key={percent_change6h}>
-          <TableCell align="right">{renderPercentage(Number(percent_change6h))}</TableCell>
-        </Fade>
-      </SwitchTransition>
-      <SwitchTransition>
-        <Fade key={percent_change24h}>
-          <TableCell align="right">{renderPercentage(Number(percent_change24h))}</TableCell>
-        </Fade>
-      </SwitchTransition>
+
+      <TableCell
+        style={{
+          overflow: 'hidden', // Hide the overflowed text
+          textOverflow: 'ellipsis', // Show ellipsis when the text overflows
+          whiteSpace: 'nowrap', // Prevent text from wrapping
+          width: '230px',
+        }}>
+        <Box sx={{ flexGrow: 1 }}>
+          <Grid container spacing={0} rowSpacing={1}>
+            <Grid size={6}>
+              <Item>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ display: 'inline-block' }}>5M:</span>
+                  <SwitchTransition>
+                    <CSSTransition
+                      key={percent_change5m} // Ensure unique key for transitions
+                      classNames="fade"
+                      timeout={300} // Adjust as needed for transition speed
+                    >
+                      <span style={{ display: 'inline-block' }}>{renderPercentage(Number(percent_change5m))}</span>
+                    </CSSTransition>
+                  </SwitchTransition>
+                </div>
+              </Item>
+            </Grid>
+            <Grid size={6}>
+              <Item>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ display: 'inline-block' }}>&nbsp;6H:</span>
+                  <SwitchTransition>
+                    <CSSTransition
+                      key={percent_change6h} // Ensure unique key for transitions
+                      classNames="fade"
+                      timeout={300} // Adjust as needed for transition speed
+                    >
+                      <span style={{ display: 'inline-block' }}>{renderPercentage(Number(percent_change6h))}</span>
+                    </CSSTransition>
+                  </SwitchTransition>
+                </div>
+              </Item>
+            </Grid>
+            <Grid size={6}>
+              <Item>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ display: 'inline-block' }}>1H:</span>
+                  <SwitchTransition>
+                    <CSSTransition
+                      key={percent_change1h} // Ensure unique key for transitions
+                      classNames="fade"
+                      timeout={300} // Adjust as needed for transition speed
+                    >
+                      <span style={{ display: 'inline-block' }}>{renderPercentage(Number(percent_change1h))}</span>
+                    </CSSTransition>
+                  </SwitchTransition>
+                </div>
+              </Item>
+            </Grid>
+            <Grid size={6}>
+              <Item>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ display: 'inline-block' }}>24H:</span>
+                  <SwitchTransition>
+                    <CSSTransition
+                      key={percent_change24h} // Ensure unique key for transitions
+                      classNames="fade"
+                      timeout={300} // Adjust as needed for transition speed
+                    >
+                      <span style={{ display: 'inline-block' }}>{renderPercentage(Number(percent_change24h))}</span>
+                    </CSSTransition>
+                  </SwitchTransition>
+                </div>
+              </Item>
+            </Grid>
+          </Grid>
+        </Box>
+      </TableCell>
     </TableRow>
   );
 }

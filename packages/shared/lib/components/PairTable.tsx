@@ -21,28 +21,12 @@ export default function PairTable({ ticker }: PairTableProps) {
       <TableContainer>
         <Table
           sx={{
-            minWidth: 800,
+            minWidth: 600,
             '& td': {
               fontWeight: 700,
               color: 'text.primary', // Theme-aware
             },
           }}>
-          <TableHead>
-            <TableRow
-              sx={{
-                backgroundColor: 'background.default', // Theme-aware
-                color: 'text.primary', // Theme-aware
-              }}>
-              <TableCell>#</TableCell>
-              <TableCell>name</TableCell>
-              <TableCell align="right">Price</TableCell>
-              <TableCell align="right">5M %</TableCell>
-              <TableCell align="right">1H %</TableCell>
-              <TableCell align="right">6H %</TableCell>
-              <TableCell align="right">24H %</TableCell>
-            </TableRow>
-          </TableHead>
-
           <PairTableBody rowsPerPage={rowsPerPage} page={page} setDataLength={setDataLength} temp={ticker} />
         </Table>
       </TableContainer>
