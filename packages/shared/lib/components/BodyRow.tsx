@@ -74,7 +74,73 @@ export default function BodyPairRow({ row }: BodyRowProps) {
         backgroundColor: 'background.default', // Theme-aware
         color: 'text.primary', // Theme-aware
       }}>
-      <TableCell>BUTTON</TableCell>
+      <TableCell
+        title={`Chain : ${row.chainId.toUpperCase()} / Dex : ${row.dexId.toUpperCase()}`} // The full text will appear when you hover over the cell
+        style={{
+          overflow: 'hidden', // Hide the overflowed text
+          textOverflow: 'ellipsis', // Show ellipsis when the text overflows
+          whiteSpace: 'nowrap', // Prevent text from wrapping
+        }}
+        sx={theme => ({
+          [theme.breakpoints.down('md')]: {
+            position: 'sticky',
+            left: 48,
+            zIndex: 10,
+            backgroundColor: '#121212',
+          },
+        })}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ flexGrow: 1 }}>
+            <Grid container direction="column">
+              <Grid>
+                <Avatar
+                  src={`https://dd.dexscreener.com/ds-data/chains/${row.chainId}.png"`}
+                  sx={{
+                    width: 30,
+                    height: 30,
+                  }}
+                />
+              </Grid>
+              <Grid>
+                <Avatar
+                  src={`https://dd.dexscreener.com/ds-data/dexes/${row.dexId}.png"`}
+                  sx={{
+                    width: 30,
+                    height: 30,
+                  }}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </Box>
+      </TableCell>
+      <TableCell
+        title={row.baseToken.name} // The full text will appear when you hover over the cell
+        style={{
+          overflow: 'hidden', // Hide the overflowed text
+          textOverflow: 'ellipsis', // Show ellipsis when the text overflows
+          whiteSpace: 'nowrap', // Prevent text from wrapping
+        }}
+        padding="none"
+        sx={theme => ({
+          [theme.breakpoints.down('md')]: {
+            position: 'sticky',
+            left: 48,
+            zIndex: 10,
+            backgroundColor: '#121212',
+          },
+        })}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Avatar
+            src={row.info?.imageUrl}
+            sx={{
+              width: 50,
+              height: 50,
+              mr: 1,
+            }}
+          />
+        </Box>
+      </TableCell>
       <TableCell
         style={{
           overflow: 'hidden', // Hide the overflowed text

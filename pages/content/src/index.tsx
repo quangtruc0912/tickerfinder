@@ -53,8 +53,6 @@ const setupInjections = async () => {
   });
 };
 
-console.log('content script loaded');
-
-void toggleTheme();
+console.log('content script loaded zzz');
 
 setupInjections();

@@ -24,7 +24,7 @@ const PairTableBody = memo(({ rowsPerPage, page, setDataLength, temp }: PairTabl
   return (
     <TableBody>
       {isLoading ? (
-        <BodySkeleton rows={rowsPerPage} heads={6} />
+        <BodySkeleton rows={rowsPerPage} heads={7} />
       ) : (
         dataSliced.map(row => <BodyPairRow key={row.baseToken.address} row={row} />)
       )}
