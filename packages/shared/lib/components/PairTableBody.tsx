@@ -1,4 +1,4 @@
-import { useEffect, useState, memo } from 'react';
+import { useEffect, useState, memo, useMemo } from 'react';
 import BodyPairRow from './BodyRow';
 import BodyPriorityRow from './BodyPriorityRow';
 import { Box, Skeleton, TableBody, TableCell, TableRow } from '@mui/material';
@@ -16,25 +16,21 @@ const PairTableBody = memo(({ rowsPerPage, page, setDataLength, temp }: PairTabl
   const { data: dexData, isLoading: isDexLoading } = useDexScreener(ticker);
   const { data: kucoinData, isLoading: isKucoinLoading } = useKucoin(ticker);
 
+  const kucoinDataMemo = useMemo(() => kucoinData, [kucoinData]);
   const dataSliced = dexData.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
 
   useEffect(() => {
     setTicker(temp);
-    setDataLength(dexData.length);
-  }, [dexData.length, temp]);
-
+  }, [temp]);
+  console.log('memo', kucoinDataMemo);
   return (
     <TableBody>
       {isKucoinLoading ? (
         <BodySkeleton rows={1} heads={7} />
       ) : kucoinData.name != '' ? (
-        <BodyPriorityRow key={kucoinData.symbol} row={kucoinData} />
+        <BodyPriorityRow row={kucoinDataMemo} />
       ) : null}
-      {isDexLoading ? (
-        <BodySkeleton rows={rowsPerPage} heads={7} />
-      ) : (
-        dataSliced.map(row => <BodyPairRow key={row.baseToken.address} row={row} />)
-      )}
+      {isDexLoading ? <BodySkeleton rows={rowsPerPage} heads={7} /> : dataSliced.map(row => <BodyPairRow row={row} />)}
     </TableBody>
   );
 });

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { useStorage } from '../hooks/useStorage';
 import { exampleThemeStorage } from '@extension/storage';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { BrowserRouter } from 'react-router-dom';
 declare module '@mui/material/styles' {
   interface Palette {
     border: {
@@ -47,7 +48,11 @@ const AppProvider = ({ children }: React.PropsWithChildren<{}>) => {
   const theme = useStorage(exampleThemeStorage);
   const isLight = theme === 'light';
 
-  return <ThemeProvider theme={isLight ? themeLight : themeDark}>{children}</ThemeProvider>;
+  return (
+    <BrowserRouter>
+      <ThemeProvider theme={isLight ? themeLight : themeDark}>{children}</ThemeProvider>
+    </BrowserRouter>
+  );
 };
 
 export const injectReact = (content: React.ReactNode, target: HTMLElement) => {

@@ -11,7 +11,6 @@ export default function PairTable({ ticker }: PairTableProps) {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [page, setPage] = useState(0);
   const [dataLength, setDataLength] = useState(0);
-
   return (
     <Paper
       sx={{

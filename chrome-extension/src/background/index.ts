@@ -12,7 +12,7 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
     const ticker = message.ticker;
     console.log('Received request to fetch:', ticker);
 
-    fetch(`https://api.kucoin.com/api/v2/symbols/${ticker}-USDT`)
+    fetch(`https://api.kucoin.com/api/v1/market/stats?symbol=${ticker}-USDT`)
       .then(res => {
         return res.json();
       })

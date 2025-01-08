@@ -45,7 +45,7 @@ export default function BodyPairRow({ row }: BodyRowProps) {
     compactDisplay: 'short',
   });
   const volume_24 = numberFormat(row.volume.h24);
-  const liquid = numberFormat(row.liquidity.usd);
+
   const renderPercentage = (num: number) => {
     return num > 0 ? (
       <Box display="flex" justifyContent="flex-end" alignItems="center" color={'success.main'}>
@@ -73,7 +73,15 @@ export default function BodyPairRow({ row }: BodyRowProps) {
       sx={{
         backgroundColor: 'background.default', // Theme-aware
         color: 'text.primary', // Theme-aware
-      }}>
+        cursor: 'pointer', // Indicate that the row is clickable
+        '&:hover': {
+          backgroundColor: 'action.hover', // Theme-aware hover background color
+          border: '2px solid', // Add a border on hover
+          borderColor: 'primary.main', // Theme-aware border color
+          borderRadius: '4px', // Optional: Add rounded corners for better visuals
+        },
+      }}
+      onClick={() => window.open(`https://dexscreener.com/${row.chainId}/${row.pairAddress}`, '_blank')}>
       <TableCell
         title={`Chain : ${row.chainId.toUpperCase()} / Dex : ${row.dexId.toUpperCase()}`} // The full text will appear when you hover over the cell
         style={{
@@ -153,12 +161,14 @@ export default function BodyPairRow({ row }: BodyRowProps) {
               <Item>{row.baseToken.name}</Item>
             </Grid>
             <Grid size={4}>
-              <Item>{row.baseToken.symbol}</Item>
+              <Item>
+                {row.baseToken.symbol} / <span style={{ opacity: 0.7, fontSize: 11 }}>{row.quoteToken.symbol}</span>
+              </Item>
             </Grid>
             <Grid size={6}>
               <Item>
                 <div>
-                  <span>MKT Cap:</span>
+                  <span>MKT Cap: </span>
                   <SwitchTransition>
                     <CSSTransition
                       key={marketCap} // Ensure unique key for transitions
@@ -174,7 +184,7 @@ export default function BodyPairRow({ row }: BodyRowProps) {
             <Grid size={6}>
               <Item>
                 <div>
-                  <span>VOL 24H:</span>
+                  <span>VOL 24H: </span>
                   <SwitchTransition>
                     <CSSTransition
                       key={marketCap} // Ensure unique key for transitions

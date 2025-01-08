@@ -102,10 +102,8 @@ export function useKucoin(ticker: string) {
   async function init() {
     try {
       const findResult = findInPriorityChainList(ticker);
-      console.log(findResult);
       if (findResult) {
         chrome.runtime.sendMessage({ type: 'FETCH_KUCOIN', ticker }, response => {
-          console.log(response);
           if (response.data) {
             response.data.ticker = findResult[0];
             response.data.name = findResult[1];

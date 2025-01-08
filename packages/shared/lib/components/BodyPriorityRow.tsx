@@ -7,6 +7,8 @@ import { styled } from '@mui/material/styles';
 import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid2';
 import { useTheme } from '@mui/material/styles';
+import { useMemo, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 function numberFormat(num: number, options?: any) {
   let temp = 2;
@@ -37,13 +39,10 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
   const price = numberFormat(USD);
   const kucoinLogo = `content/kucoin-logo.svg`;
   const logo = `content/${row.ticker.toUpperCase()}.svg`;
+
   const percent_change24h = Number(row.changeRate).toFixed(2);
 
-  //   const marketCap = numberFormat(row.marketCap, {
-  //     notation: 'compact',
-  //     compactDisplay: 'short',
-  //   });
-  const volume_24 = numberFormat(Number(row.volValue));
+  const volume_24 = useMemo(() => numberFormat(Number(row.volValue)), [row.volValue]);
 
   const renderPercentage = (num: number) => {
     return num > 0 ? (
@@ -63,16 +62,25 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
     ...theme.typography.body2,
     padding: theme.spacing(0.5),
     textAlign: 'center',
-    flexGrow: 1,
-    border: `2px solid ${theme.palette.divider}`, // Thicker and more visible border
-    borderRadius: theme.shape.borderRadius, // Optional: keep border rounded for better visuals
+    border: `2px solid ${theme.palette.divider}`,
+    borderRadius: theme.shape.borderRadius,
   }));
+  console.log('BodyPriorityPairRow rendered');
   return (
     <TableRow
+      hover
       sx={{
         backgroundColor: 'background.default', // Theme-aware
         color: 'text.primary', // Theme-aware
-      }}>
+        cursor: 'pointer', // Indicate that the row is clickable
+        '&:hover': {
+          backgroundColor: 'action.hover', // Theme-aware hover background color
+          border: '2px solid', // Add a border on hover
+          borderColor: 'primary.main', // Theme-aware border color
+          borderRadius: '4px', // Optional: Add rounded corners for better visuals
+        },
+      }}
+      onClick={() => window.open(`https://www.kucoin.com/trade/${row.ticker}-USDT`, '_blank')}>
       <TableCell
         title={`Dex : Kucoin`} // The full text will appear when you hover over the cell
         style={{
@@ -100,7 +108,7 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
         </Box>
       </TableCell>
       <TableCell
-        title={row.buy} // The full text will appear when you hover over the cell
+        title={row.name} // The full text will appear when you hover over the cell
         style={{
           overflow: 'hidden', // Hide the overflowed text
           textOverflow: 'ellipsis', // Show ellipsis when the text overflows
@@ -140,37 +148,8 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
             <Grid size={4}>
               <Item>{row.ticker}</Item>
             </Grid>
-            {/* <Grid size={6}>
-                            <Item>
-                                <div>
-                                    <span>MKT Cap:</span>
-                                    <SwitchTransition>
-                                        <CSSTransition
-                      key={marketCap} // Ensure unique key for transitions
-                      classNames="fade"
-                      timeout={300} // Adjust as needed for transition speed
-                    >
-                      <span>{marketCap}</span>
-                    </CSSTransition>
-                                    </SwitchTransition>
-                                </div>
-                            </Item>
-                        </Grid> */}
             <Grid size={12}>
-              <Item>
-                <div>
-                  <span>VOL 24H:</span>
-                  <SwitchTransition>
-                    <CSSTransition
-                      key={volume_24} // Ensure unique key for transitions
-                      classNames="fade"
-                      timeout={300} // Adjust as needed for transition speed
-                    >
-                      <span>{volume_24}</span>
-                    </CSSTransition>
-                  </SwitchTransition>
-                </div>
-              </Item>
+              <Item>MKT Cap:{volume_24}</Item>
             </Grid>
           </Grid>
         </Box>
