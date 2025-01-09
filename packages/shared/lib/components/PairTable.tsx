@@ -8,9 +8,6 @@ interface PairTableProps {
   ticker: string;
 }
 export default function PairTable({ ticker }: PairTableProps) {
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [page, setPage] = useState(0);
-  const [dataLength, setDataLength] = useState(0);
   return (
     <Paper
       sx={{
@@ -26,7 +23,7 @@ export default function PairTable({ ticker }: PairTableProps) {
               color: 'text.primary', // Theme-aware
             },
           }}>
-          <PairTableBody rowsPerPage={rowsPerPage} page={page} setDataLength={setDataLength} temp={ticker} />
+          <PairTableBody temp={ticker} />
         </Table>
       </TableContainer>
       {/* <TablePagination

@@ -65,7 +65,7 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
     border: `2px solid ${theme.palette.divider}`,
     borderRadius: theme.shape.borderRadius,
   }));
-  console.log('BodyPriorityPairRow rendered');
+
   return (
     <TableRow
       hover
@@ -79,6 +79,7 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
           borderColor: 'primary.main', // Theme-aware border color
           borderRadius: '4px', // Optional: Add rounded corners for better visuals
         },
+        borderBottom: `1px solid ${theme.palette.divider}`, // White line or divider line at the bottom
       }}
       onClick={() => window.open(`https://www.kucoin.com/trade/${row.ticker}-USDT`, '_blank')}>
       <TableCell

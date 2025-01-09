@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PriorityPair } from '../models/ticker';
 
-const PRIORITYCHAINLIST: readonly [string, string][] = [
+export const PRIORITYCHAINLIST: readonly [string, string][] = [
   ['BTC', 'Bitcoin'],
   ['SOL', 'Solana'],
   ['ETH', 'Ethereum'],

@@ -74,12 +74,14 @@ export default function BodyPairRow({ row }: BodyRowProps) {
         backgroundColor: 'background.default', // Theme-aware
         color: 'text.primary', // Theme-aware
         cursor: 'pointer', // Indicate that the row is clickable
+        borderColor: 'black',
         '&:hover': {
           backgroundColor: 'action.hover', // Theme-aware hover background color
           border: '2px solid', // Add a border on hover
           borderColor: 'primary.main', // Theme-aware border color
           borderRadius: '4px', // Optional: Add rounded corners for better visuals
         },
+        borderBottom: `1px solid ${theme.palette.divider}`, // White line or divider line at the bottom
       }}
       onClick={() => window.open(`https://dexscreener.com/${row.chainId}/${row.pairAddress}`, '_blank')}>
       <TableCell
