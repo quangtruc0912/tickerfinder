@@ -1,7 +1,9 @@
 import { toggleTheme } from '@src/toggleTheme';
-import { TICKER_PROCESSED, HIGHTLIGHTED_COLOR, injectReact } from '@extension/shared';
+import { TICKER_PROCESSED, HIGHTLIGHTED_COLOR, injectReact, ArrowDirection } from '@extension/shared';
 import { PRIORITYCHAINLIST } from '@extension/shared';
-
+import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import { createRoot } from 'react-dom/client';
 import _ from 'lodash';
 import TickerPopup from '@src/TickerPopup';
 
@@ -58,6 +60,32 @@ function getUniqueTextContentFromPriority(
   return Array.from(uniqueTexts);
 }
 
+const renderIndicator = (ele: HTMLElement, percentChange: number) => {
+  let span = ele.querySelector('span[data-arrow]') as HTMLElement | null;
+  ele.style.display = 'inline-flex';
+  ele.style.alignItems = 'center';
+  const arrowDirection: ArrowDirection = percentChange > 0 ? 'up' : 'down';
+  if (!span) {
+    span = document.createElement('span');
+    span.setAttribute('data-arrow', 'true');
+    span.style.display = 'inline-flex'; // Use flexbox for alignment
+    span.style.alignItems = 'center'; // Vertical centering
+    arrowDirection === 'up' ? (span.style.color = 'green') : (span.style.color = 'red');
+    ele.appendChild(span);
+  }
+
+  span.innerHTML = ' ';
+  // Create a container for the icon and render it
+  const iconContainer = document.createElement('span');
+  iconContainer.style.display = 'flex'; // Flexbox ensures proper alignment
+  iconContainer.style.alignItems = 'center'; // Center vertically
+  iconContainer.style.justifyContent = 'center';
+  span.appendChild(iconContainer);
+
+  const root = createRoot(iconContainer);
+  root.render(arrowDirection === 'up' ? <ArrowDropUpIcon fontSize="small" /> : <ArrowDropDownIcon fontSize="small" />);
+};
+
 const injectIndicating = async () => {
   const regexStr = /\$(\w)+/g;
 
@@ -75,7 +103,7 @@ const injectIndicating = async () => {
         filteredElements.forEach(element => {
           let temp = element.textContent?.toUpperCase().substring(1);
           if (temp === ticker) {
-            element.textContent = element.textContent + '123';
+            renderIndicator(element, response.data.changeRate);
           }
         });
       } else {
