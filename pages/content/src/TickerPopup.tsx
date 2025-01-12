@@ -32,7 +32,7 @@ export default function TickerPopup() {
 
       setPopupPosition({
         top: rect.top + scrollTop + rect.height, // Place the popup just below the hovered element
-        left: rect.left + scrollLeft + rect.width / 2, // Center the popup relative to the hovered element
+        left: rect.left + scrollLeft + rect.width / 4, // Center the popup relative to the hovered element
       });
 
       setPopupText(target.dataset.popupText); // Set the text content from the data attribute

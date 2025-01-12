@@ -47,15 +47,26 @@ export default function BodyPairRow({ row }: BodyRowProps) {
   const volume_24 = numberFormat(row.volume.h24);
 
   const renderPercentage = (num: number) => {
-    return num > 0 ? (
-      <Box display="flex" justifyContent="flex-end" alignItems="center" color={'success.main'}>
-        <ArrowDropUpIcon color={'success'} />
-        <span>{num}%</span>
-      </Box>
-    ) : (
-      <Box display={'flex'} justifyContent="flex-end" alignItems="center" color={'error.main'}>
-        <ArrowDropDownIcon />
-        <span> {num.toString().replace('-', '')}%</span>
+    console.log(num);
+    if (num > 0) {
+      return (
+        <Box display="flex" justifyContent="flex-end" alignItems="center" color={'success.main'}>
+          <ArrowDropUpIcon color={'success'} />
+          <span>{num}%</span>
+        </Box>
+      );
+    }
+    if (num < 0) {
+      return (
+        <Box display={'flex'} justifyContent="flex-end" alignItems="center" color={'error.main'}>
+          <ArrowDropDownIcon />
+          <span> {num.toString().replace('-', '')}%</span>
+        </Box>
+      );
+    }
+    return (
+      <Box display={'flex'} justifyContent="flex-end" alignItems="center" color={'gray'}>
+        <span> {num.toString().replace('-', '')}</span>
       </Box>
     );
   };

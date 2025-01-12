@@ -45,12 +45,21 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
   const volume_24 = useMemo(() => numberFormat(Number(row.volValue)), [row.volValue]);
 
   const renderPercentage = (num: number) => {
-    return num > 0 ? (
-      <Box display="flex" justifyContent="flex-end" alignItems="center" color={'success.main'}>
-        <ArrowDropUpIcon color={'success'} />
-        <span>{num}%</span>
-      </Box>
-    ) : (
+    if (num > 0) {
+      return (
+        <Box display="flex" justifyContent="flex-end" alignItems="center" color={'success.main'}>
+          <ArrowDropUpIcon color={'success'} />
+          <span>{num}%</span>
+        </Box>
+      );
+    }
+    if (num === 0) {
+      <Box display={'flex'} justifyContent="flex-end" alignItems="center">
+        <span> {num.toString().replace('-', '')}%</span>
+      </Box>;
+    }
+
+    return (
       <Box display={'flex'} justifyContent="flex-end" alignItems="center" color={'error.main'}>
         <ArrowDropDownIcon />
         <span> {num.toString().replace('-', '')}%</span>
