@@ -23,13 +23,13 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
   return (
     <TableBody style={{ display: 'block', maxHeight: '400px', overflowY: 'auto' }}>
       {isKucoinLoading ? (
-        <BodySkeleton rows={1} heads={7} />
+        <BodySkeleton rows={1} heads={8} />
       ) : kucoinData.name !== '' ? (
         <BodyPriorityRow key={kucoinDataMemo.time} row={kucoinDataMemo} />
       ) : null}
 
       {isDexLoading ? (
-        <BodySkeleton rows={5} heads={7} />
+        <BodySkeleton rows={5} heads={8} />
       ) : (
         dataSliced.map(row => <BodyPairRow key={row.pairAddress} row={row} />)
       )}

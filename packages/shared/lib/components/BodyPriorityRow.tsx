@@ -1,4 +1,4 @@
-import { Fade, TableCell, TableRow, Box, Avatar } from '@mui/material';
+import { Fade, TableCell, TableRow, Box, Avatar, IconButton } from '@mui/material';
 import { SwitchTransition, CSSTransition } from 'react-transition-group';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
@@ -7,8 +7,10 @@ import { styled } from '@mui/material/styles';
 import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid2';
 import { useTheme } from '@mui/material/styles';
-import { useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useState, useEffect } from 'react';
+import { useWatchListStorage } from '@extension/storage';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import StarIcon from '@mui/icons-material/Star';
 
 function numberFormat(num: number, options?: any) {
   let temp = 2;
@@ -34,13 +36,14 @@ interface BodyRowProps {
 }
 
 export default function BodyPriorityPairRow({ row }: BodyRowProps) {
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
   const theme = useTheme();
   const USD = Number(row.sell);
   const price = numberFormat(USD);
   const kucoinLogo = `content/kucoin-logo.svg`;
   const logo = `content/${row.ticker.toUpperCase()}.svg`;
 
-  const percent_change24h = Number(row.changeRate).toFixed(2);
+  const percent_change24h = Number(row.changeRate);
 
   const volume_24 = useMemo(() => numberFormat(Number(row.volValue)), [row.volValue]);
 
@@ -49,7 +52,7 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
       return (
         <Box display="flex" justifyContent="flex-end" alignItems="center" color={'success.main'}>
           <ArrowDropUpIcon color={'success'} />
-          <span>{num}%</span>
+          <span>{(num * 100).toFixed(2)}%</span>
         </Box>
       );
     }
@@ -62,7 +65,7 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
     return (
       <Box display={'flex'} justifyContent="flex-end" alignItems="center" color={'error.main'}>
         <ArrowDropDownIcon />
-        <span> {num.toString().replace('-', '')}%</span>
+        <span> {(num * 100).toFixed(2).toString().replace('-', '')}%</span>
       </Box>
     );
   };
@@ -74,6 +77,26 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
     border: `2px solid ${theme.palette.divider}`,
     borderRadius: theme.shape.borderRadius,
   }));
+
+  useEffect(() => {
+    const checkWatchlist = async () => {
+      const watchlist = await useWatchListStorage.getWatchlist();
+      const isAdded = watchlist.some(listItem => listItem.name === row.name && listItem.isPriority === true);
+      setIsInWatchlist(isAdded);
+    };
+
+    checkWatchlist();
+  }, [row]);
+
+  const handleToggle = async () => {
+    if (isInWatchlist) {
+      await useWatchListStorage.removeFromWatchlist(row.name);
+    } else {
+      await useWatchListStorage.addToWatchlist({ address: '', isPriority: true, name: row.name, symbol: row.symbol });
+    }
+
+    setIsInWatchlist(prev => !prev);
+  };
 
   return (
     <TableRow
@@ -91,6 +114,16 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
         borderBottom: `1px solid ${theme.palette.divider}`, // White line or divider line at the bottom
       }}
       onClick={() => window.open(`https://www.kucoin.com/trade/${row.ticker}-USDT`, '_blank')}>
+      <TableCell>
+        <IconButton
+          onClick={event => {
+            event.stopPropagation(); // Prevent the click from bubbling to the TableRow
+            handleToggle();
+          }}
+          color={isInWatchlist ? 'warning' : 'default'}>
+          {isInWatchlist ? <StarIcon /> : <StarBorderIcon />}
+        </IconButton>
+      </TableCell>
       <TableCell
         title={`Dex : Kucoin`} // The full text will appear when you hover over the cell
         style={{

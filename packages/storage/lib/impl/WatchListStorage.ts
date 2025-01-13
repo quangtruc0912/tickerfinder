@@ -1,0 +1,54 @@
+import { StorageEnum } from '../base/enums';
+import { createStorage } from '../base/base';
+import type { BaseStorage } from '../base/types';
+type WatchlistItem = {
+  name: string;
+  address: string;
+  symbol: string;
+  isPriority: boolean;
+};
+const WATCHLIST_KEY = 'watchlist';
+
+type IWatchListStorage = BaseStorage<WatchlistItem[]> & {
+  addToWatchlist: (item: WatchlistItem) => Promise<void>;
+  removeFromWatchlist: (address: string) => Promise<void>;
+  removePriorityFromWatchlist: (name: string) => Promise<void>;
+  getWatchlist: () => Promise<WatchlistItem[]>;
+};
+
+const watchListStorage = createStorage<WatchlistItem[]>(WATCHLIST_KEY, [], {
+  liveUpdate: true, // Enable real-time updates
+  serialization: {
+    serialize: (data: WatchlistItem[]) => JSON.stringify(data), // Serialize to JSON
+    deserialize: (data: string) => (data ? JSON.parse(data) : []), // Deserialize from JSON
+  },
+});
+
+export const useWatchListStorage: IWatchListStorage = {
+  ...watchListStorage,
+  addToWatchlist: async item => {
+    const currentList = await watchListStorage.get();
+    const isAlreadyAdded = currentList.some(
+      existingItem =>
+        existingItem.address === item.address || (existingItem.name === item.name && item.isPriority === true),
+    );
+    if (!isAlreadyAdded) {
+      await watchListStorage.set([...currentList, item]);
+    }
+  },
+  removeFromWatchlist: async address => {
+    const currentList = await watchListStorage.get();
+    const updatedList = currentList.filter(item => item.address !== address);
+    await watchListStorage.set(updatedList);
+  },
+  removePriorityFromWatchlist: async name => {
+    const currentList = await watchListStorage.get();
+    const updatedList = currentList.filter(item => item.name !== name && !item.isPriority);
+    await watchListStorage.set(updatedList);
+  },
+  getWatchlist: async () => {
+    const list = await watchListStorage.get();
+
+    return list;
+  },
+};

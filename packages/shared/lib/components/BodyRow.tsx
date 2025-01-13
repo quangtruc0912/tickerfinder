@@ -1,4 +1,4 @@
-import { Fade, TableCell, TableRow, Box, Avatar } from '@mui/material';
+import { Fade, TableCell, TableRow, Box, Avatar, IconButton } from '@mui/material';
 import { SwitchTransition, CSSTransition } from 'react-transition-group';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
@@ -7,6 +7,10 @@ import { styled } from '@mui/material/styles';
 import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid2';
 import { useTheme } from '@mui/material/styles';
+import { useWatchListStorage } from '@extension/storage';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import StarIcon from '@mui/icons-material/Star';
+import { useState, useEffect } from 'react';
 
 function numberFormat(num: number, options?: any) {
   let temp = 2;
@@ -32,6 +36,7 @@ interface BodyRowProps {
 }
 
 export default function BodyPairRow({ row }: BodyRowProps) {
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
   const theme = useTheme();
   const USD = Number(row.priceUsd);
   const price = numberFormat(USD);
@@ -47,7 +52,6 @@ export default function BodyPairRow({ row }: BodyRowProps) {
   const volume_24 = numberFormat(row.volume.h24);
 
   const renderPercentage = (num: number) => {
-    console.log(num);
     if (num > 0) {
       return (
         <Box display="flex" justifyContent="flex-end" alignItems="center" color={'success.main'}>
@@ -79,6 +83,31 @@ export default function BodyPairRow({ row }: BodyRowProps) {
     border: `2px solid ${theme.palette.divider}`, // Thicker and more visible border
     borderRadius: theme.shape.borderRadius, // Optional: keep border rounded for better visuals
   }));
+
+  useEffect(() => {
+    const checkWatchlist = async () => {
+      const watchlist = await useWatchListStorage.getWatchlist();
+      const isAdded = watchlist.some(listItem => listItem.address === row.baseToken.address);
+      setIsInWatchlist(isAdded);
+    };
+
+    checkWatchlist();
+  }, [row]);
+
+  const handleToggle = async () => {
+    if (isInWatchlist) {
+      await useWatchListStorage.removeFromWatchlist(row.baseToken.address);
+    } else {
+      await useWatchListStorage.addToWatchlist({
+        address: row.baseToken.address,
+        isPriority: false,
+        name: row.baseToken.name,
+        symbol: row.baseToken.symbol,
+      });
+    }
+
+    setIsInWatchlist(prev => !prev);
+  };
   return (
     <TableRow
       sx={{
@@ -95,6 +124,16 @@ export default function BodyPairRow({ row }: BodyRowProps) {
         borderBottom: `1px solid ${theme.palette.divider}`, // White line or divider line at the bottom
       }}
       onClick={() => window.open(`https://dexscreener.com/${row.chainId}/${row.pairAddress}`, '_blank')}>
+      <TableCell>
+        <IconButton
+          onClick={event => {
+            event.stopPropagation(); // Prevent the click from bubbling to the TableRow
+            handleToggle();
+          }}
+          color={isInWatchlist ? 'warning' : 'default'}>
+          {isInWatchlist ? <StarIcon /> : <StarBorderIcon />}
+        </IconButton>
+      </TableCell>
       <TableCell
         title={`Chain : ${row.chainId.toUpperCase()} / Dex : ${row.dexId.toUpperCase()}`} // The full text will appear when you hover over the cell
         style={{
