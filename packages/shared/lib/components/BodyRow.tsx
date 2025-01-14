@@ -87,7 +87,7 @@ export default function BodyPairRow({ row }: BodyRowProps) {
   useEffect(() => {
     const checkWatchlist = async () => {
       const watchlist = await useWatchListStorage.getWatchlist();
-      const isAdded = watchlist.some(listItem => listItem.address === row.baseToken.address);
+      const isAdded = watchlist.some(listItem => listItem.url === row.url);
       setIsInWatchlist(isAdded);
     };
 
@@ -96,13 +96,16 @@ export default function BodyPairRow({ row }: BodyRowProps) {
 
   const handleToggle = async () => {
     if (isInWatchlist) {
-      await useWatchListStorage.removeFromWatchlist(row.baseToken.address);
+      await useWatchListStorage.removeFromWatchlist(row.url);
     } else {
       await useWatchListStorage.addToWatchlist({
         address: row.baseToken.address,
         isPriority: false,
         name: row.baseToken.name,
         symbol: row.baseToken.symbol,
+        url: row.url,
+        dexId: row.dexId,
+        chainId: row.chainId,
       });
     }
 

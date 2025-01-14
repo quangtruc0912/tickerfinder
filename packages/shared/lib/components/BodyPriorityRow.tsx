@@ -81,7 +81,7 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
   useEffect(() => {
     const checkWatchlist = async () => {
       const watchlist = await useWatchListStorage.getWatchlist();
-      const isAdded = watchlist.some(listItem => listItem.name === row.name && listItem.isPriority === true);
+      const isAdded = watchlist.some(listItem => listItem.symbol === row.symbol && listItem.isPriority === true);
       setIsInWatchlist(isAdded);
     };
 
@@ -90,9 +90,17 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
 
   const handleToggle = async () => {
     if (isInWatchlist) {
-      await useWatchListStorage.removeFromWatchlist(row.name);
+      await useWatchListStorage.removePriorityFromWatchlist(row.name);
     } else {
-      await useWatchListStorage.addToWatchlist({ address: '', isPriority: true, name: row.name, symbol: row.symbol });
+      await useWatchListStorage.addToWatchlist({
+        address: '',
+        isPriority: true,
+        name: row.name,
+        symbol: row.symbol,
+        url: '',
+        dexId: '',
+        chainId: '',
+      });
     }
 
     setIsInWatchlist(prev => !prev);

@@ -42,10 +42,7 @@ function getUniqueTextContentFromPriority(
   priorityChainList: readonly [string, string][],
 ): string[] {
   const priorityKeys = new Set(priorityChainList.map(([key]) => key));
-  console.log(priorityKeys);
-
   const uniqueTexts = new Set<string>();
-
   elements.forEach(element => {
     if (element && element.textContent) {
       const text = element.textContent.trim().toUpperCase().substring(1);
@@ -134,6 +131,6 @@ const setupInjections = async () => {
   });
 };
 
-console.log('content script loaded zzz');
+// console.log('content script loaded zzz');
 
 setupInjections();

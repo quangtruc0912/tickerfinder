@@ -1,13 +1,19 @@
 import { StorageEnum } from '../base/enums';
 import { createStorage } from '../base/base';
 import type { BaseStorage } from '../base/types';
-type WatchlistItem = {
+export type WatchlistItem = {
   name: string;
   address: string;
   symbol: string;
   isPriority: boolean;
+  url: string;
+  dexId: string;
+  chainId: string;
 };
 const WATCHLIST_KEY = 'watchlist';
+
+//clear stuff
+// chrome.storage.local.clear()
 
 type IWatchListStorage = BaseStorage<WatchlistItem[]> & {
   addToWatchlist: (item: WatchlistItem) => Promise<void>;
@@ -30,15 +36,18 @@ export const useWatchListStorage: IWatchListStorage = {
     const currentList = await watchListStorage.get();
     const isAlreadyAdded = currentList.some(
       existingItem =>
-        existingItem.address === item.address || (existingItem.name === item.name && item.isPriority === true),
+        (existingItem.url === item.url && item.isPriority === false && item.url != '') ||
+        (existingItem.name === item.name && item.isPriority === true),
     );
+
     if (!isAlreadyAdded) {
       await watchListStorage.set([...currentList, item]);
     }
   },
-  removeFromWatchlist: async address => {
+  removeFromWatchlist: async url => {
     const currentList = await watchListStorage.get();
-    const updatedList = currentList.filter(item => item.address !== address);
+    const updatedList = currentList.filter(item => item.url !== url);
+
     await watchListStorage.set(updatedList);
   },
   removePriorityFromWatchlist: async name => {
