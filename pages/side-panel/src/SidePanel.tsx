@@ -1,43 +1,83 @@
 import '@src/SidePanel.css';
-import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
-import { exampleThemeStorage } from '@extension/storage';
-import type { ComponentPropsWithoutRef } from 'react';
+import { withErrorBoundary, withSuspense } from '@extension/shared';
+import { useWatchListStorage, WatchlistItem } from '@extension/storage';
+import React, { useState, useEffect } from 'react';
+import {} from '@extension/shared';
+import { Drawer, List, ListItem, ListItemText, IconButton, Typography, Box, Divider } from '@mui/material';
+import { Delete as DeleteIcon } from '@mui/icons-material';
 
 const SidePanel = () => {
-  const theme = useStorage(exampleThemeStorage);
-  const isLight = theme === 'light';
-  const logo = isLight ? 'side-panel/logo_vertical.svg' : 'side-panel/logo_vertical_dark.svg';
-  const goGithubSite = () =>
-    chrome.tabs.create({ url: 'https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite' });
+  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
+  useEffect(() => {
+    const fetchWatchlist = async () => {
+      const list = await useWatchListStorage.get();
+      setWatchlist(list);
+    };
+
+    fetchWatchlist();
+
+    const unsubscribe = useWatchListStorage.subscribe(() => {
+      setWatchlist(useWatchListStorage.getSnapshot() || []);
+    });
+
+    return () => unsubscribe(); // Cleanup on unmount
+  }, []);
+
+  const removeCoin = async (url: string) => {
+    await useWatchListStorage.removeFromWatchlist(url);
+  };
+
+  const removePriorityCoin = async (name: string) => {
+    await useWatchListStorage.removePriorityFromWatchlist(name);
+  };
 
   return (
-    <div className={`App ${isLight ? 'bg-slate-50' : 'bg-gray-800'}`}>
-      <header className={`App-header ${isLight ? 'text-gray-900' : 'text-gray-100'}`}>
-        <button onClick={goGithubSite}>
-          <img src={chrome.runtime.getURL(logo)} className="App-logo" alt="logo" />
-        </button>
-        <p>
-          Edit <code>pages/side-panel/src/SidePanel.tsx</code>
-        </p>
-        <ToggleButton>Toggle theme</ToggleButton>
-      </header>
-    </div>
-  );
-};
-
-const ToggleButton = (props: ComponentPropsWithoutRef<'button'>) => {
-  const theme = useStorage(exampleThemeStorage);
-  return (
-    <button
-      className={
-        props.className +
-        ' ' +
-        'font-bold mt-4 py-1 px-4 rounded shadow hover:scale-105 ' +
-        (theme === 'light' ? 'bg-white text-black' : 'bg-black text-white')
-      }
-      onClick={exampleThemeStorage.toggle}>
-      {props.children}
-    </button>
+    <Drawer
+      anchor="left"
+      open={true}
+      variant="persistent"
+      sx={{
+        width: 360,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width: 360,
+          boxSizing: 'border-box',
+          backgroundColor: 'background.default',
+          color: 'text.primary',
+        },
+      }}>
+      <Box p={2}>
+        <Typography variant="h6" gutterBottom>
+          Crypto Watchlist
+        </Typography>
+        <Divider />
+        <List>
+          {watchlist.map(item => (
+            <ListItem
+              key={item.address}
+              divider
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+              <ListItemText
+                primary={item.name}
+                secondary={`(${item.symbol})`}
+                sx={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              />
+              <IconButton edge="end" aria-label="delete" onClick={() => removeCoin(item.url)}>
+                <DeleteIcon />
+              </IconButton>
+            </ListItem>
+          ))}
+        </List>
+      </Box>
+    </Drawer>
   );
 };
 
