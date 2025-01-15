@@ -106,6 +106,8 @@ export default function BodyPairRow({ row }: BodyRowProps) {
         url: row.url,
         dexId: row.dexId,
         chainId: row.chainId,
+        ticker: row.baseToken.symbol,
+        imageUrl: row.info.imageUrl,
       });
     }
 

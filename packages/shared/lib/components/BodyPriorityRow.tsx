@@ -100,6 +100,8 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
         url: '',
         dexId: '',
         chainId: '',
+        ticker: row.ticker,
+        imageUrl: logo,
       });
     }
 

@@ -9,11 +9,13 @@ export type WatchlistItem = {
   url: string;
   dexId: string;
   chainId: string;
+  ticker: string;
+  imageUrl: string;
 };
 const WATCHLIST_KEY = 'watchlist';
 
 //clear stuff
-// chrome.storage.local.clear()
+chrome.storage.local.clear();
 
 type IWatchListStorage = BaseStorage<WatchlistItem[]> & {
   addToWatchlist: (item: WatchlistItem) => Promise<void>;
