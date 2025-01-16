@@ -101,7 +101,7 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
         dexId: '',
         chainId: '',
         ticker: row.ticker,
-        imageUrl: logo,
+        imageUrl: chrome.runtime.getURL(logo),
       });
     }
 

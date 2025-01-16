@@ -18,6 +18,26 @@ import {
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useCoinData } from './LoadSidePanelData'; // Import your custom hook
 
+function formatCustomPrice(price: number): string {
+  const priceString = price.toString();
+  const [integerPart, decimalPart] = priceString.split('.');
+
+  if (!decimalPart) {
+    // If no decimal part, return as is
+    return priceString;
+  }
+
+  const zerosCount = decimalPart.match(/^0+/)?.[0]?.length || 0;
+
+  // Apply formatting only if there are more than 4 leading zeros
+  if (zerosCount > 4) {
+    const significantDigits = decimalPart.slice(zerosCount);
+    return `0.0{${zerosCount}}${significantDigits}`;
+  }
+
+  // Otherwise, return the price as a normal decimal
+  return price.toString();
+}
 const SidePanel = () => {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   useEffect(() => {
@@ -35,16 +55,15 @@ const SidePanel = () => {
     return () => unsubscribe(); // Cleanup on unmount
   }, []);
 
-  const removeCoin = async (url: string) => {
-    await useWatchListStorage.removeFromWatchlist(url);
-  };
-
-  const removePriorityCoin = async (name: string) => {
-    await useWatchListStorage.removePriorityFromWatchlist(name);
+  const removeCoin = async (url: string, name: string, isPriority: boolean) => {
+    if (!isPriority) {
+      await useWatchListStorage.removeFromWatchlist(url);
+    } else {
+      await useWatchListStorage.removePriorityFromWatchlist(name);
+    }
   };
 
   const coinData = useCoinData(watchlist);
-  console.log(coinData);
 
   return (
     <Drawer
@@ -59,8 +78,6 @@ const SidePanel = () => {
           maxWidth: '100vw',
           height: '100vh', // Full height
           boxSizing: 'border-box',
-          borderRadius: '12px 0 0 12px', // Rounded corners on the left side
-          boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)', // Soft shadow for elevation
           backgroundColor: 'background.default',
           color: 'text.primary',
         },
@@ -71,15 +88,13 @@ const SidePanel = () => {
         </Typography>
         <Divider />
         <List>
-          {watchlist.map(item => (
+          {coinData.map(item => (
             <React.Fragment key={item.address}>
               <ListItem alignItems="center" sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <ListItemAvatar>
                     <Avatar
-                      src={
-                        'https://dd.dexscreener.com/ds-data/tokens/ethereum/0x38e68a37e401f7271568cecaac63c6b1e19130b4.png?size=lg&key=3f84d5'
-                      }
+                      src={item.isPriority ? chrome.runtime.getURL(item.imageUrl) : item.imageUrl}
                       alt={item.symbol}
                     />
                   </ListItemAvatar>
@@ -87,11 +102,11 @@ const SidePanel = () => {
                     <ListItemText
                       primary={
                         <Typography variant="body1" fontWeight="500">
-                          {item.name}
+                          {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
                         </Typography>
                       }
                       secondary={
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" color="gray">
                           {item.symbol}
                         </Typography>
                       }
@@ -106,15 +121,15 @@ const SidePanel = () => {
                   }}>
                   <Box sx={{ textAlign: 'right' }}>
                     <Typography variant="body2" fontWeight="500">
-                      ${10} {/* Example: Replace with actual price */}
+                      ${formatCustomPrice(item.price)} {/* Example: Replace with actual price */}
                     </Typography>
-                    <Typography variant="caption" color={Math.random() > 0 ? 'success.main' : 'error.main'}>
-                      {10 > 0 ? '+' : ''}
-                      {Math.random().toFixed(2)}%
+                    <Typography variant="caption" color={item.changeRate24h > 0 ? 'success.main' : 'error.main'}>
+                      {item.changeRate24h > 0 ? '+' : ''}
+                      {Number(item.changeRate24h).toFixed(2)}%
                     </Typography>
                   </Box>
 
-                  <IconButton edge="end" onClick={() => removeCoin(item.address)}>
+                  <IconButton edge="end" onClick={() => removeCoin(item.url, item.name, item.isPriority)}>
                     <DeleteIcon />
                   </IconButton>
                 </Box>

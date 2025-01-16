@@ -107,7 +107,7 @@ export default function BodyPairRow({ row }: BodyRowProps) {
         dexId: row.dexId,
         chainId: row.chainId,
         ticker: row.baseToken.symbol,
-        imageUrl: row.info.imageUrl,
+        imageUrl: row.info?.imageUrl || '',
       });
     }
 

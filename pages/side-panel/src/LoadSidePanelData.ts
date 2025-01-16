@@ -56,15 +56,15 @@ const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
   const updatedPairs = data.pairs.filter((item: any) => urlList.includes(item.url));
 
   const sidePanelDataList: SidePanelData[] = updatedPairs.map((item: any) => ({
-    address: item.address,
+    address: item.baseToken.address,
     chainId: item.chainId,
     dexId: item.dexId,
-    changeRate24h: item.changeRate24h || 0,
-    price: item.priceChange.h24 || 0,
-    name: item.name,
-    symbol: item.symbol,
+    changeRate24h: item.priceChange.h24 || 0,
+    price: item.priceUsd || 0,
+    name: item.baseToken.name,
+    symbol: item.baseToken.symbol,
     url: item.url,
-    imageUrl: '',
+    imageUrl: item.info?.imageUrl,
     isPriority: false,
   }));
 
@@ -86,21 +86,21 @@ export const useCoinData = (watchlist: WatchlistItem[]) => {
     if (watchlist.length === 0) return;
 
     const fetchData = async () => {
-      const updatedData: SidePanelData[] = [];
+      let updatedData: SidePanelData[] = [];
       let prioritiesCoin = watchlist.filter(ele => ele.isPriority == true);
       let coins = watchlist.filter(ele => ele.isPriority == false);
       for (const coin of prioritiesCoin) {
         let priorityData: SidePanelData;
 
         priorityData = await fetchPriorityCoin(coin.ticker, coin);
-        console.log('pri', priorityData);
         if (priorityData !== null) {
           updatedData.push(priorityData);
         }
       }
       let data = await fetchCoinsData(coins);
 
-      updatedData.concat(data);
+      updatedData = updatedData.concat(data);
+
       setCoinData(updatedData);
     };
 

@@ -15,7 +15,7 @@ export type WatchlistItem = {
 const WATCHLIST_KEY = 'watchlist';
 
 //clear stuff
-chrome.storage.local.clear();
+// chrome.storage.local.clear();
 
 type IWatchListStorage = BaseStorage<WatchlistItem[]> & {
   addToWatchlist: (item: WatchlistItem) => Promise<void>;
