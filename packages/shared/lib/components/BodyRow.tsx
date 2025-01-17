@@ -106,7 +106,9 @@ export default function BodyPairRow({ row }: BodyRowProps) {
         url: row.url,
         dexId: row.dexId,
         chainId: row.chainId,
-        ticker: row.baseToken.symbol,
+        changeRate24h: row?.priceChange?.h24?.toString(),
+        price: row.priceUsd,
+        thresholds: { lower: 0, upper: 0 },
         imageUrl: row.info?.imageUrl || '',
       });
     }

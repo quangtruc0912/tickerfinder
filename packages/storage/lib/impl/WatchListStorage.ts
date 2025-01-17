@@ -1,16 +1,24 @@
 import { StorageEnum } from '../base/enums';
 import { createStorage } from '../base/base';
 import type { BaseStorage } from '../base/types';
+
+type Threshold = {
+  upper: number;
+  lower: number;
+};
+
 export type WatchlistItem = {
   name: string;
   address: string;
   symbol: string;
-  isPriority: boolean;
   url: string;
   dexId: string;
   chainId: string;
-  ticker: string;
+  changeRate24h: string;
+  price: string;
+  isPriority: boolean;
   imageUrl: string;
+  thresholds: Threshold;
 };
 const WATCHLIST_KEY = 'watchlist';
 

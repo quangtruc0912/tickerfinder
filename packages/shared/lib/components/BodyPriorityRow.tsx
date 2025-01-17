@@ -81,7 +81,7 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
   useEffect(() => {
     const checkWatchlist = async () => {
       const watchlist = await useWatchListStorage.getWatchlist();
-      const isAdded = watchlist.some(listItem => listItem.symbol === row.symbol && listItem.isPriority === true);
+      const isAdded = watchlist.some(listItem => listItem.symbol === row.ticker && listItem.isPriority === true);
       setIsInWatchlist(isAdded);
     };
 
@@ -96,11 +96,13 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
         address: '',
         isPriority: true,
         name: row.name,
-        symbol: row.symbol,
+        symbol: row.ticker,
         url: '',
         dexId: '',
         chainId: '',
-        ticker: row.ticker,
+        changeRate24h: row.changeRate,
+        price: row.sell,
+        thresholds: { lower: 0, upper: 0 },
         imageUrl: chrome.runtime.getURL(logo),
       });
     }

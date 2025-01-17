@@ -14,13 +14,16 @@ import {
   Divider,
   Avatar,
   ListItemAvatar,
+  Collapse,
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
-import { useCoinData } from './LoadSidePanelData'; // Import your custom hook
 
 function formatCustomPrice(price: number): string {
-  const priceString = price.toString();
-  const [integerPart, decimalPart] = priceString.split('.');
+  if (price === undefined) {
+    return '0';
+  }
+  const priceString = price?.toString();
+  const [integerPart, decimalPart] = priceString?.split('.');
 
   if (!decimalPart) {
     // If no decimal part, return as is
@@ -36,14 +39,21 @@ function formatCustomPrice(price: number): string {
   }
 
   // Otherwise, return the price as a normal decimal
-  return price.toString();
+  return price?.toString();
 }
 const SidePanel = () => {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
+  const [expandedItem, setExpandedItem] = useState<string | null>(null); // Track expanded item by its unique ID
+
   useEffect(() => {
     const fetchWatchlist = async () => {
-      const list = await useWatchListStorage.get();
-      setWatchlist(list);
+      // const list = await useWatchListStorage.get();
+      // setWatchlist(list);
+      chrome.runtime.sendMessage({ type: 'GET_WATCHLIST' }, response => {
+        if (response) {
+          setWatchlist(response.watchlist);
+        }
+      });
     };
 
     fetchWatchlist();
@@ -63,7 +73,9 @@ const SidePanel = () => {
     }
   };
 
-  const coinData = useCoinData(watchlist);
+  const toggleExpandItem = (itemId: string) => {
+    setExpandedItem(expandedItem === itemId ? null : itemId); // Toggle expanded state
+  };
 
   return (
     <Drawer
@@ -88,13 +100,17 @@ const SidePanel = () => {
         </Typography>
         <Divider />
         <List>
-          {coinData.map(item => (
+          {watchlist?.map(item => (
             <React.Fragment key={item.address}>
-              <ListItem alignItems="center" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <ListItem
+                alignItems="center"
+                sx={{ display: 'flex', justifyContent: 'space-between' }}
+                onClick={() => toggleExpandItem(item.address)} // Expand/Collapse on click
+              >
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <ListItemAvatar>
                     <Avatar
-                      src={item.isPriority ? chrome.runtime.getURL(item.imageUrl) : item.imageUrl}
+                      src={item.isPriority ? chrome.runtime.getURL(item?.imageUrl) : item?.imageUrl}
                       alt={item.symbol}
                     />
                   </ListItemAvatar>
@@ -121,10 +137,12 @@ const SidePanel = () => {
                   }}>
                   <Box sx={{ textAlign: 'right' }}>
                     <Typography variant="body2" fontWeight="500">
-                      ${formatCustomPrice(item.price)} {/* Example: Replace with actual price */}
+                      ${formatCustomPrice(Number(item.price))} {/* Example: Replace with actual price */}
                     </Typography>
-                    <Typography variant="caption" color={item.changeRate24h > 0 ? 'success.main' : 'error.main'}>
-                      {item.changeRate24h > 0 ? '+' : ''}
+                    <Typography
+                      variant="caption"
+                      color={Number(item.changeRate24h) > 0 ? 'success.main' : 'error.main'}>
+                      {Number(item.changeRate24h) > 0 ? '+' : ''}
                       {Number(item.changeRate24h).toFixed(2)}%
                     </Typography>
                   </Box>
@@ -134,6 +152,20 @@ const SidePanel = () => {
                   </IconButton>
                 </Box>
               </ListItem>
+              <Collapse in={expandedItem === item.address} timeout="auto" unmountOnExit>
+                <Box sx={{ padding: 2, backgroundColor: 'background.paper', borderRadius: 1, margin: 1 }}>
+                  {/* Add additional info here */}
+                  <Typography variant="body2" color="text.secondary">
+                    Market Cap: ${formatCustomPrice(100)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Volume (24h): ${formatCustomPrice(100)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Circulating Supply: {100} {item.symbol}
+                  </Typography>
+                </Box>
+              </Collapse>
               <Divider />
             </React.Fragment>
           ))}
