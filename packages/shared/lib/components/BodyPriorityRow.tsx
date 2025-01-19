@@ -11,6 +11,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useWatchListStorage } from '@extension/storage';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
+import { generateUUID } from '../utils/index';
 
 function numberFormat(num: number, options?: any) {
   let temp = 2;
@@ -93,6 +94,7 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
       await useWatchListStorage.removePriorityFromWatchlist(row.name);
     } else {
       await useWatchListStorage.addToWatchlist({
+        id: generateUUID(),
         address: '',
         isPriority: true,
         name: row.name,
@@ -102,8 +104,7 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
         chainId: '',
         changeRate24h: row.changeRate,
         price: row.sell,
-        thresholds: { lower: 0, upper: 0 },
-        imageUrl: chrome.runtime.getURL(logo),
+        imageUrl: logo,
       });
     }
 

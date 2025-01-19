@@ -11,6 +11,7 @@ import { useWatchListStorage } from '@extension/storage';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
 import { useState, useEffect } from 'react';
+import { generateUUID } from '../utils/index';
 
 function numberFormat(num: number, options?: any) {
   let temp = 2;
@@ -99,6 +100,7 @@ export default function BodyPairRow({ row }: BodyRowProps) {
       await useWatchListStorage.removeFromWatchlist(row.url);
     } else {
       await useWatchListStorage.addToWatchlist({
+        id: generateUUID(),
         address: row.baseToken.address,
         isPriority: false,
         name: row.baseToken.name,
@@ -108,7 +110,6 @@ export default function BodyPairRow({ row }: BodyRowProps) {
         chainId: row.chainId,
         changeRate24h: row?.priceChange?.h24?.toString(),
         price: row.priceUsd,
-        thresholds: { lower: 0, upper: 0 },
         imageUrl: row.info?.imageUrl || '',
       });
     }

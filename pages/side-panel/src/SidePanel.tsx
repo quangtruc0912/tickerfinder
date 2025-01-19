@@ -15,8 +15,11 @@ import {
   Avatar,
   ListItemAvatar,
   Collapse,
+  TextField,
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 
 function formatCustomPrice(price: number): string {
   if (price === undefined) {
@@ -47,13 +50,13 @@ const SidePanel = () => {
 
   useEffect(() => {
     const fetchWatchlist = async () => {
-      // const list = await useWatchListStorage.get();
-      // setWatchlist(list);
-      chrome.runtime.sendMessage({ type: 'GET_WATCHLIST' }, response => {
-        if (response) {
-          setWatchlist(response.watchlist);
-        }
-      });
+      let list = await useWatchListStorage.get();
+      setWatchlist(list);
+      // chrome.runtime.sendMessage({ type: 'GET_WATCHLIST' }, response => {
+      //   if (response) {
+      //     setWatchlist(response.watchlist);
+      //   }
+      // });
     };
 
     fetchWatchlist();
@@ -76,6 +79,37 @@ const SidePanel = () => {
   const toggleExpandItem = (itemId: string) => {
     setExpandedItem(expandedItem === itemId ? null : itemId); // Toggle expanded state
   };
+
+  // const toggleActiveThreshold = (url: string, name: string, isPriority: boolean) => {
+  //   setWatchlist(prev =>
+  //     prev.map(item =>
+  //       (item.url === url && !isPriority) || (item.name === name && isPriority)
+  //         ? { ...item, threshold: { ...item.thresholds, active: !item.thresholds.active } }
+  //         : item,
+  //     ),
+  //   );
+  // };
+
+  // const updateThreshold = (url: string, name: string, isPriority: boolean, key: string, value: string) => {
+  //   setWatchlist(prev =>
+  //     prev.map(item =>
+  //       (item.url === url && !isPriority) || (item.name === name && isPriority)
+  //         ? { ...item, thresholds: { ...item.thresholds, [key]: value } } // Store as string in state
+  //         : item,
+  //     ),
+  //   );
+  // };
+
+  // const sanitizeInput = (url: string, name: string, isPriority: boolean, key: string, value: string) => {
+  //   const sanitizedValue = isNaN(Number(value)) ? '' : Number(value); // Convert to number or clear invalid input
+  //   setWatchlist(prev =>
+  //     prev.map(item =>
+  //       (item.url === url && !isPriority) || (item.name === name && isPriority)
+  //         ? { ...item, thresholds: { ...item.thresholds, [key]: sanitizedValue } }
+  //         : item,
+  //     ),
+  //   );
+  // };
 
   return (
     <Drawer
@@ -153,17 +187,45 @@ const SidePanel = () => {
                 </Box>
               </ListItem>
               <Collapse in={expandedItem === item.address} timeout="auto" unmountOnExit>
-                <Box sx={{ padding: 2, backgroundColor: 'background.paper', borderRadius: 1, margin: 1 }}>
-                  {/* Add additional info here */}
-                  <Typography variant="body2" color="text.secondary">
-                    Market Cap: ${formatCustomPrice(100)}
+                <Box
+                  sx={{
+                    padding: 2,
+                    borderRadius: 1,
+                    margin: 1,
+                  }}>
+                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                    Configure Threshold for {item.name}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Volume (24h): ${formatCustomPrice(100)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Circulating Supply: {100} {item.symbol}
-                  </Typography>
+                  {/* <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Typography variant="body2">Active:</Typography>
+                      <IconButton
+                        onClick={() => toggleActiveThreshold(item.url, item.name, item.isPriority)} // Function to toggle active state
+                        color={item.thresholds.active ? 'primary' : 'default'}>
+                        {item.thresholds.active ? <NotificationsActiveIcon /> : <NotificationsOffIcon />}
+                      </IconButton>
+                    </Box>
+
+                    <TextField
+                      label="Upper Limit"
+                      type="text" // Use text to allow partial input
+                      value={item.thresholds.upper} // Ensure the value is a string for input
+                      onChange={e => updateThreshold(item.url, item.name, item.isPriority, 'upper', e.target.value)} // Update function
+                      onBlur={e => sanitizeInput(item.url, item.name, item.isPriority, 'upper', e.target.value)}
+                      fullWidth
+                      size="small"
+                    />
+
+                    <TextField
+                      label="Lower Limit"
+                      type="text" // Use text to allow partial input
+                      value={item.thresholds.lower} // Ensure the value is a string for input
+                      onChange={e => updateThreshold(item.url, item.name, item.isPriority, 'lower', e.target.value)} // Update function
+                      onBlur={e => sanitizeInput(item.url, item.name, item.isPriority, 'upper', e.target.value)}
+                      fullWidth
+                      size="small"
+                    />
+                  </Box> */}
                 </Box>
               </Collapse>
               <Divider />

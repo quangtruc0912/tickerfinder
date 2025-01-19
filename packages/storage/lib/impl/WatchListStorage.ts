@@ -2,12 +2,15 @@ import { StorageEnum } from '../base/enums';
 import { createStorage } from '../base/base';
 import type { BaseStorage } from '../base/types';
 
-type Threshold = {
-  upper: number;
-  lower: number;
+export type Threshold = {
+  id: string;
+  active: boolean;
+  upper: number | string;
+  lower: number | string;
 };
 
 export type WatchlistItem = {
+  id: string;
   name: string;
   address: string;
   symbol: string;
@@ -18,9 +21,9 @@ export type WatchlistItem = {
   price: string;
   isPriority: boolean;
   imageUrl: string;
-  thresholds: Threshold;
 };
 const WATCHLIST_KEY = 'watchlist';
+const THRESHOLD_KEY = 'THRESHOLD';
 
 //clear stuff
 // chrome.storage.local.clear();
@@ -69,5 +72,48 @@ export const useWatchListStorage: IWatchListStorage = {
     const list = await watchListStorage.get();
 
     return list;
+  },
+};
+
+type IThresholdStorage = BaseStorage<Threshold[]> & {
+  addThreshold: (item: Threshold) => Promise<void>;
+  removeThreshold: (address: string) => Promise<void>;
+  getThreshold: () => Promise<Threshold[]>;
+  updateThreshold: (item: Threshold) => Promise<void>;
+};
+
+const thresholdStorage = createStorage<Threshold[]>(THRESHOLD_KEY, [], {
+  liveUpdate: true, // Enable real-time updates
+  serialization: {
+    serialize: (data: Threshold[]) => JSON.stringify(data), // Serialize to JSON
+    deserialize: (data: string) => (data ? JSON.parse(data) : []), // Deserialize from JSON
+  },
+});
+
+export const useThresholdStorage: IThresholdStorage = {
+  ...thresholdStorage,
+  addThreshold: async item => {
+    const currentList = await thresholdStorage.get();
+    const isAlreadyAdded = currentList.some(existingItem => existingItem.id === item.id);
+
+    if (!isAlreadyAdded) {
+      await thresholdStorage.set([...currentList, item]);
+    }
+  },
+  removeThreshold: async id => {
+    const currentList = await thresholdStorage.get();
+    const updatedList = currentList.filter(item => item.id !== id);
+
+    await thresholdStorage.set(updatedList);
+  },
+  getThreshold: async () => {
+    const list = await thresholdStorage.get();
+
+    return list;
+  },
+  updateThreshold: async item => {
+    const list = await thresholdStorage.get();
+    const updatedThresholds = list.map(threshold => (threshold.id === item.id ? { ...threshold, ...item } : threshold));
+    await thresholdStorage.set(updatedThresholds);
   },
 };
