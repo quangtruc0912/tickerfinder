@@ -45,6 +45,7 @@ export default function BodyPairRow({ row }: BodyRowProps) {
   const percent_change1h = Number(row.priceChange.h1).toFixed(2);
   const percent_change6h = Number(row.priceChange.h6).toFixed(2);
   const percent_change24h = Number(row.priceChange.h24).toFixed(2);
+  const uuid = generateUUID();
 
   const marketCap = numberFormat(row.marketCap, {
     notation: 'compact',
@@ -100,7 +101,7 @@ export default function BodyPairRow({ row }: BodyRowProps) {
       await useWatchListStorage.removeFromWatchlist(row.url);
     } else {
       await useWatchListStorage.addToWatchlist({
-        id: generateUUID(),
+        guidID: uuid,
         address: row.baseToken.address,
         isPriority: false,
         name: row.baseToken.name,

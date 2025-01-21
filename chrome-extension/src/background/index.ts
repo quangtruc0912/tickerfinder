@@ -1,14 +1,15 @@
 import 'webextension-polyfill';
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { WatchlistItem, useWatchListStorage } from '@extension/storage';
+import { WatchlistItem, useWatchListStorage, Threshold, useThresholdStorage } from '@extension/storage';
 
 const INTERVAL = 5000;
 let watchlist: WatchlistItem[] = [];
+let threshold: Threshold[] = [];
 
 const fetchPriorityCoin = async (symbol: string, watchlist: WatchlistItem) => {
   const res = await fetch(`https://api.kucoin.com/api/v1/market/stats?symbol=${symbol}-USDT`);
   const jsonData = await res.json();
   return {
+    guidID: watchlist.guidID,
     address: watchlist.address,
     chainId: watchlist.chainId,
     dexId: watchlist.dexId,
@@ -19,7 +20,6 @@ const fetchPriorityCoin = async (symbol: string, watchlist: WatchlistItem) => {
     url: watchlist.url,
     imageUrl: `content/${watchlist.symbol.toUpperCase()}.svg`,
     isPriority: true,
-    thresholds: { lower: 0, upper: 0 },
   } as WatchlistItem;
 };
 
@@ -38,7 +38,8 @@ const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
 
   const updatedPairs = data.pairs.filter((item: any) => urlList.includes(item.url));
 
-  const watchListlDataList: WatchlistItem[] = updatedPairs.map((item: any) => ({
+  const watchListDataList: WatchlistItem[] = updatedPairs.map((item: any) => ({
+    guidID: '',
     address: item.baseToken.address,
     chainId: item.chainId,
     dexId: item.dexId,
@@ -49,18 +50,18 @@ const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
     url: item.url,
     imageUrl: item.info?.imageUrl,
     isPriority: false,
-    thresholds: { lower: 0, upper: 0 },
   }));
 
-  watchListlDataList.forEach(item => {
+  watchListDataList.forEach(item => {
     const matchingWatchlistItem = watchlist.find(watchlistItem => watchlistItem.url === item.url);
 
     if (matchingWatchlistItem) {
       item.imageUrl = matchingWatchlistItem.imageUrl;
+      item.guidID = matchingWatchlistItem.guidID;
     }
   });
 
-  return watchListlDataList;
+  return watchListDataList;
 };
 
 const fetchData = async () => {
@@ -97,6 +98,17 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
     return true; // Keep the message channel open for asynchronous response
   } else if (message.type === 'GET_WATCHLIST') {
     senderResponse(watchlist);
+    return true;
+  } else if (message.type === 'GET_THRESHOLD') {
+    const id = message.id;
+    const result = useThresholdStorage
+      .getThresholdFirstOrDefault(id)
+      .then(res => {
+        return res;
+      })
+      .then(res => {
+        senderResponse(res);
+      });
     return true;
   }
 });

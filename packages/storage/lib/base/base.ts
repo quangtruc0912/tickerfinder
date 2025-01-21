@@ -93,7 +93,6 @@ export function createStorage<D = string>(key: string, fallback: D, config?: Sto
     if (!value) {
       return fallback;
     }
-
     return deserialize(value[key]) ?? fallback;
   };
 
@@ -105,6 +104,7 @@ export function createStorage<D = string>(key: string, fallback: D, config?: Sto
     if (!initedCache) {
       cache = await get();
     }
+
     cache = await updateCache(valueOrUpdate, cache);
 
     await chrome?.storage[storageEnum].set({ [key]: serialize(cache) });

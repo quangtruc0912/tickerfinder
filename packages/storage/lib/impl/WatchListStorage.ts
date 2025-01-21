@@ -10,7 +10,7 @@ export type Threshold = {
 };
 
 export type WatchlistItem = {
-  id: string;
+  guidID: string;
   name: string;
   address: string;
   symbol: string;
@@ -22,7 +22,7 @@ export type WatchlistItem = {
   isPriority: boolean;
   imageUrl: string;
 };
-const WATCHLIST_KEY = 'watchlist';
+const WATCHLIST_KEY = 'WATCH_LIST';
 const THRESHOLD_KEY = 'THRESHOLD';
 
 //clear stuff
@@ -37,17 +37,14 @@ type IWatchListStorage = BaseStorage<WatchlistItem[]> & {
 
 const watchListStorage = createStorage<WatchlistItem[]>(WATCHLIST_KEY, [], {
   liveUpdate: true, // Enable real-time updates
-  serialization: {
-    serialize: (data: WatchlistItem[]) => JSON.stringify(data), // Serialize to JSON
-    deserialize: (data: string) => (data ? JSON.parse(data) : []), // Deserialize from JSON
-  },
 });
 
 export const useWatchListStorage: IWatchListStorage = {
   ...watchListStorage,
   addToWatchlist: async item => {
     const currentList = await watchListStorage.get();
-    const isAlreadyAdded = currentList.some(
+
+    const isAlreadyAdded = currentList?.some(
       existingItem =>
         (existingItem.url === item.url && item.isPriority === false && item.url != '') ||
         (existingItem.name === item.name && item.isPriority === true),
@@ -79,6 +76,7 @@ type IThresholdStorage = BaseStorage<Threshold[]> & {
   addThreshold: (item: Threshold) => Promise<void>;
   removeThreshold: (address: string) => Promise<void>;
   getThreshold: () => Promise<Threshold[]>;
+  getThresholdFirstOrDefault: (id: string) => Promise<Threshold>;
   updateThreshold: (item: Threshold) => Promise<void>;
 };
 
@@ -110,6 +108,19 @@ export const useThresholdStorage: IThresholdStorage = {
     const list = await thresholdStorage.get();
 
     return list;
+  },
+  getThresholdFirstOrDefault: async (id: string) => {
+    const currentList = await thresholdStorage.get();
+    let threshold = currentList.find(item => item.id === id);
+    if (threshold === undefined) {
+      threshold = {
+        id: '',
+        active: false,
+        lower: 0,
+        upper: 0,
+      } as Threshold;
+    }
+    return threshold;
   },
   updateThreshold: async item => {
     const list = await thresholdStorage.get();

@@ -43,7 +43,7 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
   const price = numberFormat(USD);
   const kucoinLogo = `content/kucoin-logo.svg`;
   const logo = `content/${row.ticker.toUpperCase()}.svg`;
-
+  const uuid = generateUUID();
   const percent_change24h = Number(row.changeRate);
 
   const volume_24 = useMemo(() => numberFormat(Number(row.volValue)), [row.volValue]);
@@ -94,7 +94,7 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
       await useWatchListStorage.removePriorityFromWatchlist(row.name);
     } else {
       await useWatchListStorage.addToWatchlist({
-        id: generateUUID(),
+        guidID: uuid,
         address: '',
         isPriority: true,
         name: row.name,

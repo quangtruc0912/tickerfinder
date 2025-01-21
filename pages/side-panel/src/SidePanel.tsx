@@ -1,6 +1,6 @@
 import '@src/SidePanel.css';
 import { withErrorBoundary, withSuspense } from '@extension/shared';
-import { useWatchListStorage, WatchlistItem } from '@extension/storage';
+import { Threshold, useWatchListStorage, WatchlistItem } from '@extension/storage';
 import React, { useState, useEffect } from 'react';
 import {} from '@extension/shared';
 import {
@@ -25,8 +25,10 @@ function formatCustomPrice(price: number): string {
   if (price === undefined) {
     return '0';
   }
-  const priceString = price?.toString();
-  const [integerPart, decimalPart] = priceString?.split('.');
+
+  // Ensure the price is represented as a fixed-point number string
+  const priceString = price.toFixed(20); // Use a sufficiently large precision
+  const [integerPart, decimalPart] = priceString.split('.');
 
   if (!decimalPart) {
     // If no decimal part, return as is
@@ -37,28 +39,23 @@ function formatCustomPrice(price: number): string {
 
   // Apply formatting only if there are more than 4 leading zeros
   if (zerosCount > 4) {
-    const significantDigits = decimalPart.slice(zerosCount);
+    const significantDigits = decimalPart.slice(zerosCount).replace(/0+$/, ''); // Remove trailing zeros
     return `0.0{${zerosCount}}${significantDigits}`;
   }
 
-  // Otherwise, return the price as a normal decimal
-  return price?.toString();
+  // Otherwise, return the price as a normal decimal without trailing zeros
+  return parseFloat(priceString).toString(); // Remove trailing zeros from normal decimals
 }
 const SidePanel = () => {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
+  const [threshold, setThreshold] = useState<Threshold>({ active: false, id: '', lower: 0, upper: 0 });
   const [expandedItem, setExpandedItem] = useState<string | null>(null); // Track expanded item by its unique ID
 
   useEffect(() => {
     const fetchWatchlist = async () => {
-      let list = await useWatchListStorage.get();
+      let list = await useWatchListStorage.getWatchlist();
       setWatchlist(list);
-      // chrome.runtime.sendMessage({ type: 'GET_WATCHLIST' }, response => {
-      //   if (response) {
-      //     setWatchlist(response.watchlist);
-      //   }
-      // });
     };
-
     fetchWatchlist();
 
     const unsubscribe = useWatchListStorage.subscribe(() => {
@@ -76,8 +73,13 @@ const SidePanel = () => {
     }
   };
 
-  const toggleExpandItem = (itemId: string) => {
-    setExpandedItem(expandedItem === itemId ? null : itemId); // Toggle expanded state
+  const toggleExpandItem = (id: string) => {
+    setExpandedItem(expandedItem === id ? null : id); // Toggle expanded state
+    chrome.runtime.sendMessage({ type: 'GET_THRESHOLD', id }, response => {
+      if (response) {
+        setThreshold(response);
+      }
+    });
   };
 
   // const toggleActiveThreshold = (url: string, name: string, isPriority: boolean) => {
@@ -117,10 +119,10 @@ const SidePanel = () => {
       open={true}
       variant="persistent"
       sx={{
-        width: 360,
+        width: 400,
         flexShrink: 0,
         '& .MuiDrawer-paper': {
-          width: '360px', // Fixed width for Uniswap-like design
+          width: '400px', // Fixed width for Uniswap-like design
           maxWidth: '100vw',
           height: '100vh', // Full height
           boxSizing: 'border-box',
@@ -135,11 +137,11 @@ const SidePanel = () => {
         <Divider />
         <List>
           {watchlist?.map(item => (
-            <React.Fragment key={item.address}>
+            <React.Fragment key={item.guidID}>
               <ListItem
                 alignItems="center"
                 sx={{ display: 'flex', justifyContent: 'space-between' }}
-                onClick={() => toggleExpandItem(item.address)} // Expand/Collapse on click
+                onClick={() => toggleExpandItem(item.guidID)} // Expand/Collapse on click
               >
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <ListItemAvatar>
@@ -171,7 +173,7 @@ const SidePanel = () => {
                   }}>
                   <Box sx={{ textAlign: 'right' }}>
                     <Typography variant="body2" fontWeight="500">
-                      ${formatCustomPrice(Number(item.price))} {/* Example: Replace with actual price */}
+                      ${formatCustomPrice(Number(item.price))}
                     </Typography>
                     <Typography
                       variant="caption"
@@ -186,7 +188,7 @@ const SidePanel = () => {
                   </IconButton>
                 </Box>
               </ListItem>
-              <Collapse in={expandedItem === item.address} timeout="auto" unmountOnExit>
+              <Collapse in={expandedItem === item.guidID} timeout="auto" unmountOnExit>
                 <Box
                   sx={{
                     padding: 2,
@@ -196,22 +198,22 @@ const SidePanel = () => {
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                     Configure Threshold for {item.name}
                   </Typography>
-                  {/* <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Typography variant="body2">Active:</Typography>
                       <IconButton
-                        onClick={() => toggleActiveThreshold(item.url, item.name, item.isPriority)} // Function to toggle active state
-                        color={item.thresholds.active ? 'primary' : 'default'}>
-                        {item.thresholds.active ? <NotificationsActiveIcon /> : <NotificationsOffIcon />}
+                        // onClick={() => toggleActiveThreshold(item.url, item.name, item.isPriority)} // Function to toggle active state
+                        color={threshold?.active ? 'primary' : 'default'}>
+                        {threshold?.active ? <NotificationsActiveIcon /> : <NotificationsOffIcon />}
                       </IconButton>
                     </Box>
 
                     <TextField
                       label="Upper Limit"
                       type="text" // Use text to allow partial input
-                      value={item.thresholds.upper} // Ensure the value is a string for input
-                      onChange={e => updateThreshold(item.url, item.name, item.isPriority, 'upper', e.target.value)} // Update function
-                      onBlur={e => sanitizeInput(item.url, item.name, item.isPriority, 'upper', e.target.value)}
+                      value={threshold?.upper} // Ensure the value is a string for input
+                      // onChange={e => updateThreshold(item.url, item.name, item.isPriority, 'upper', e.target.value)} // Update function
+                      // onBlur={e => sanitizeInput(item.url, item.name, item.isPriority, 'upper', e.target.value)}
                       fullWidth
                       size="small"
                     />
@@ -219,13 +221,13 @@ const SidePanel = () => {
                     <TextField
                       label="Lower Limit"
                       type="text" // Use text to allow partial input
-                      value={item.thresholds.lower} // Ensure the value is a string for input
-                      onChange={e => updateThreshold(item.url, item.name, item.isPriority, 'lower', e.target.value)} // Update function
-                      onBlur={e => sanitizeInput(item.url, item.name, item.isPriority, 'upper', e.target.value)}
+                      value={threshold?.lower} // Ensure the value is a string for input
+                      // onChange={e => updateThreshold(item.url, item.name, item.isPriority, 'lower', e.target.value)} // Update function
+                      // onBlur={e => sanitizeInput(item.url, item.name, item.isPriority, 'upper', e.target.value)}
                       fullWidth
                       size="small"
                     />
-                  </Box> */}
+                  </Box>
                 </Box>
               </Collapse>
               <Divider />
