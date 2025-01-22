@@ -1,6 +1,6 @@
 import '@src/SidePanel.css';
 import { withErrorBoundary, withSuspense } from '@extension/shared';
-import { Threshold, useWatchListStorage, WatchlistItem } from '@extension/storage';
+import { Threshold, useWatchListStorage, WatchlistItem, useThresholdStorage } from '@extension/storage';
 import React, { useState, useEffect } from 'react';
 import {} from '@extension/shared';
 import {
@@ -16,13 +16,14 @@ import {
   ListItemAvatar,
   Collapse,
   TextField,
+  Button,
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 
 function formatCustomPrice(price: number): string {
-  if (price === undefined) {
+  if (price === undefined || price === 0) {
     return '0';
   }
 
@@ -92,26 +93,33 @@ const SidePanel = () => {
   //   );
   // };
 
-  // const updateThreshold = (url: string, name: string, isPriority: boolean, key: string, value: string) => {
-  //   setWatchlist(prev =>
-  //     prev.map(item =>
-  //       (item.url === url && !isPriority) || (item.name === name && isPriority)
-  //         ? { ...item, thresholds: { ...item.thresholds, [key]: value } } // Store as string in state
-  //         : item,
-  //     ),
-  //   );
-  // };
+  const toggleNotification = (guidID: string) => {
+    setThreshold(prevThreshold => {
+      const updatedThreshold = {
+        ...prevThreshold,
+        active: !prevThreshold.active, // Toggle the active status
+      };
 
-  // const sanitizeInput = (url: string, name: string, isPriority: boolean, key: string, value: string) => {
-  //   const sanitizedValue = isNaN(Number(value)) ? '' : Number(value); // Convert to number or clear invalid input
-  //   setWatchlist(prev =>
-  //     prev.map(item =>
-  //       (item.url === url && !isPriority) || (item.name === name && isPriority)
-  //         ? { ...item, thresholds: { ...item.thresholds, [key]: sanitizedValue } }
-  //         : item,
-  //     ),
-  //   );
-  // };
+      // Call updateThreshold with the updated state
+      useThresholdStorage.updateThreshold(updatedThreshold);
+
+      return updatedThreshold; // Return the updated state
+    });
+  };
+
+  const updateUpperThreshold = (price: number) => {
+    setThreshold(prev => ({
+      ...prev, // Keep the existing properties
+      upper: price, // Update the 'lower' property
+    }));
+  };
+
+  const updateLowerThreshold = (price: number) => {
+    setThreshold(prev => ({
+      ...prev, // Keep the existing properties
+      lower: price, // Update the 'lower' property
+    }));
+  };
 
   return (
     <Drawer
@@ -196,37 +204,119 @@ const SidePanel = () => {
                     margin: 1,
                   }}>
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    Configure Threshold for {item.name}
+                    Notification Threshold for {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Typography variant="body2">Active:</Typography>
-                      <IconButton
-                        // onClick={() => toggleActiveThreshold(item.url, item.name, item.isPriority)} // Function to toggle active state
-                        color={threshold?.active ? 'primary' : 'default'}>
-                        {threshold?.active ? <NotificationsActiveIcon /> : <NotificationsOffIcon />}
-                      </IconButton>
-                    </Box>
 
-                    <TextField
-                      label="Upper Limit"
-                      type="text" // Use text to allow partial input
-                      value={threshold?.upper} // Ensure the value is a string for input
-                      // onChange={e => updateThreshold(item.url, item.name, item.isPriority, 'upper', e.target.value)} // Update function
-                      // onBlur={e => sanitizeInput(item.url, item.name, item.isPriority, 'upper', e.target.value)}
-                      fullWidth
-                      size="small"
-                    />
-
+                  {/* First Row: Limits and Price */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 2 }}>
+                    {/* Lower Limit Input */}
                     <TextField
                       label="Lower Limit"
-                      type="text" // Use text to allow partial input
-                      value={threshold?.lower} // Ensure the value is a string for input
-                      // onChange={e => updateThreshold(item.url, item.name, item.isPriority, 'lower', e.target.value)} // Update function
-                      // onBlur={e => sanitizeInput(item.url, item.name, item.isPriority, 'upper', e.target.value)}
+                      type="text"
+                      value={formatCustomPrice(Number(threshold?.lower))}
                       fullWidth
                       size="small"
+                      sx={{
+                        flex: 1,
+                        '& .MuiInputBase-input': {
+                          textAlign: 'right', // Right-align the text in the input field
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: '#007BFF', // Default label color
+                        },
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: '#007BFF', // Default border color
+                          },
+                        },
+                      }}
                     />
+
+                    {/* Price in the Middle */}
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        textAlign: 'center',
+                        minWidth: 80, // Adjust width as needed
+                        padding: 1,
+                        border: '1px solid #ccc',
+                        borderRadius: 1,
+                        fontWeight: 'bold',
+                      }}>
+                      ${formatCustomPrice(Number(item.price))}
+                    </Typography>
+
+                    {/* Upper Limit Input */}
+                    <TextField
+                      label="Upper Limit"
+                      type="text"
+                      value={formatCustomPrice(Number(threshold?.upper))}
+                      fullWidth
+                      size="small"
+                      sx={{
+                        flex: 1,
+                        '& .MuiInputBase-input': {
+                          textAlign: 'right', // Right-align the text in the input field
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: '#007BFF', // Default label color
+                        },
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: '#007BFF', // Default border color
+                          },
+                        },
+                      }}
+                    />
+                  </Box>
+
+                  {/* Second Row: Percentage Buttons */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    {/* Lower Limit Buttons */}
+                    <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {[10, 20, 50].map(percent => (
+                        <Button
+                          key={percent}
+                          variant="outlined"
+                          size="small"
+                          onClick={() => {
+                            const adjustedPrice = Number(item.price) * (1 - percent / 100);
+                            updateLowerThreshold(adjustedPrice);
+                          }}>
+                          -{percent}%
+                        </Button>
+                      ))}
+                    </Box>
+
+                    {/* Spacer */}
+                    <Box sx={{ minWidth: 80 }}>
+                      <Button
+                        variant="contained"
+                        color={threshold?.active ? 'success' : 'error'}
+                        startIcon={threshold?.active ? <NotificationsActiveIcon /> : <NotificationsOffIcon />}
+                        onClick={() => toggleNotification(item.guidID)} // Function to toggle active state
+                        sx={{
+                          '& .MuiButton-startIcon': { marginRight: '0px', marginLeft: '0px' },
+                          textTransform: 'none', // Keep the text case as is
+                          padding: '8px 16px',
+                        }}></Button>
+                    </Box>
+
+                    {/* Upper Limit Buttons */}
+                    <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      {[10, 20, 50].map(percent => (
+                        <Button
+                          key={percent}
+                          variant="outlined"
+                          size="small"
+                          onClick={() => {
+                            const adjustedPrice = Number(item.price) * (1 + percent / 100);
+                            updateUpperThreshold(adjustedPrice);
+                          }}>
+                          +{percent}%
+                        </Button>
+                      ))}
+                    </Box>
                   </Box>
                 </Box>
               </Collapse>

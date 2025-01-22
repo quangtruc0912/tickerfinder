@@ -114,7 +114,7 @@ export const useThresholdStorage: IThresholdStorage = {
     let threshold = currentList.find(item => item.id === id);
     if (threshold === undefined) {
       threshold = {
-        id: '',
+        id: id,
         active: false,
         lower: 0,
         upper: 0,
@@ -124,7 +124,10 @@ export const useThresholdStorage: IThresholdStorage = {
   },
   updateThreshold: async item => {
     const list = await thresholdStorage.get();
-    const updatedThresholds = list.map(threshold => (threshold.id === item.id ? { ...threshold, ...item } : threshold));
+    const itemExists = list.some(threshold => threshold.id === item.id);
+    const updatedThresholds = itemExists
+      ? list.map(threshold => (threshold.id === item.id ? { ...threshold, ...item } : threshold))
+      : [...list, item];
     await thresholdStorage.set(updatedThresholds);
   },
 };
