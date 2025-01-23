@@ -49,9 +49,9 @@ function formatCustomPrice(price: number): string {
 }
 const SidePanel = () => {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
-  const [threshold, setThreshold] = useState<Threshold>({ active: false, id: '', lower: 0, upper: 0 });
+  let [threshold, setThreshold] = useState<Threshold>({ active: false, id: '', lower: 0, upper: 0 });
   const [expandedItem, setExpandedItem] = useState<string | null>(null); // Track expanded item by its unique ID
-
+  const [alertMessage, setAlertMessage] = useState<string | null>(null); // To display alerts
   useEffect(() => {
     const fetchWatchlist = async () => {
       let list = await useWatchListStorage.getWatchlist();
@@ -79,6 +79,7 @@ const SidePanel = () => {
     chrome.runtime.sendMessage({ type: 'GET_THRESHOLD', id }, response => {
       if (response) {
         setThreshold(response);
+        setAlertMessage(null);
       }
     });
   };
@@ -93,32 +94,44 @@ const SidePanel = () => {
   //   );
   // };
 
-  const toggleNotification = (guidID: string) => {
-    setThreshold(prevThreshold => {
-      const updatedThreshold = {
-        ...prevThreshold,
-        active: !prevThreshold.active, // Toggle the active status
-      };
-
-      // Call updateThreshold with the updated state
-      useThresholdStorage.updateThreshold(updatedThreshold);
-
-      return updatedThreshold; // Return the updated state
-    });
+  const toggleNotification = () => {
+    // Only allow toggling if there are no active alerts
+    if (!alertMessage) {
+      setThreshold(prevThreshold => {
+        const updatedThreshold = {
+          ...prevThreshold,
+          active: !prevThreshold.active,
+        };
+        useThresholdStorage.updateThreshold(updatedThreshold);
+        return updatedThreshold;
+      });
+    }
   };
 
-  const updateUpperThreshold = (price: number) => {
+  const updateUpperThreshold = (price: string, item: WatchlistItem) => {
     setThreshold(prev => ({
       ...prev, // Keep the existing properties
       upper: price, // Update the 'lower' property
     }));
+    checkForAlerts(item);
   };
 
-  const updateLowerThreshold = (price: number) => {
+  const updateLowerThreshold = (price: string, item: WatchlistItem) => {
     setThreshold(prev => ({
       ...prev, // Keep the existing properties
       lower: price, // Update the 'lower' property
     }));
+    checkForAlerts(item);
+  };
+
+  const checkForAlerts = (item: WatchlistItem) => {
+    if (threshold.upper < item.price && threshold.upper !== 0) {
+      setAlertMessage(`Alert: Notification Upper threshold cant be lower the actual Price.`);
+    } else if (threshold.lower > item.price && threshold.lower !== 0) {
+      setAlertMessage(`Alert: Notification Lower threshold cant be higher the actual Price.`);
+    } else {
+      setAlertMessage(null); // Clear the alert if no condition is met
+    }
   };
 
   return (
@@ -208,12 +221,40 @@ const SidePanel = () => {
                   </Typography>
 
                   {/* First Row: Limits and Price */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginBottom: 2 }}>
                     {/* Lower Limit Input */}
                     <TextField
                       label="Lower Limit"
                       type="text"
-                      value={formatCustomPrice(Number(threshold?.lower))}
+                      fullWidth
+                      value={threshold?.lower?.toString() || ''}
+                      size="small"
+                      sx={{
+                        flex: 1,
+                        '& .MuiInputBase-input': {
+                          textAlign: 'left', // Right-align the text in the input field
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: '#007BFF', // Default label color
+                        },
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: '#007BFF', // Default border color
+                          },
+                        },
+                      }}
+                      onChange={event => {
+                        const newValue = event.target.value;
+                        updateLowerThreshold(newValue, item); // Update the lower threshold
+                        checkForAlerts(item); // Trigger alert check immediately
+                      }}
+                    />
+
+                    {/* Upper Limit Input */}
+                    <TextField
+                      label="Upper Limit"
+                      type="text"
+                      value={threshold?.upper?.toString() || ''}
                       fullWidth
                       size="small"
                       sx={{
@@ -230,42 +271,10 @@ const SidePanel = () => {
                           },
                         },
                       }}
-                    />
-
-                    {/* Price in the Middle */}
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        textAlign: 'center',
-                        minWidth: 80, // Adjust width as needed
-                        padding: 1,
-                        border: '1px solid #ccc',
-                        borderRadius: 1,
-                        fontWeight: 'bold',
-                      }}>
-                      ${formatCustomPrice(Number(item.price))}
-                    </Typography>
-
-                    {/* Upper Limit Input */}
-                    <TextField
-                      label="Upper Limit"
-                      type="text"
-                      value={formatCustomPrice(Number(threshold?.upper))}
-                      fullWidth
-                      size="small"
-                      sx={{
-                        flex: 1,
-                        '& .MuiInputBase-input': {
-                          textAlign: 'right', // Right-align the text in the input field
-                        },
-                        '& .MuiInputLabel-root': {
-                          color: '#007BFF', // Default label color
-                        },
-                        '& .MuiOutlinedInput-root': {
-                          '& fieldset': {
-                            borderColor: '#007BFF', // Default border color
-                          },
-                        },
+                      onChange={event => {
+                        const newValue = event.target.value;
+                        updateUpperThreshold(newValue, item); // Update the upper threshold
+                        checkForAlerts(item); // Trigger alert check immediately
                       }}
                     />
                   </Box>
@@ -280,8 +289,13 @@ const SidePanel = () => {
                           variant="outlined"
                           size="small"
                           onClick={() => {
-                            const adjustedPrice = Number(item.price) * (1 - percent / 100);
-                            updateLowerThreshold(adjustedPrice);
+                            if (Number(item.price) < 0.00001) {
+                              const adjustedPrice = (Number(item.price) * (1 - percent / 100)).toFixed(18); // Ensure 18 decimal precision
+                              updateLowerThreshold(adjustedPrice, item); // Pass as a string to avoid scientific notation
+                            } else {
+                              const adjustedPrice = (Number(item.price) * (1 - percent / 100)).toFixed(4); // Ensure 18 decimal precision
+                              updateLowerThreshold(adjustedPrice.toString(), item); // Pass as a string to avoid scientific notation
+                            }
                           }}>
                           -{percent}%
                         </Button>
@@ -289,16 +303,32 @@ const SidePanel = () => {
                     </Box>
 
                     {/* Spacer */}
-                    <Box sx={{ minWidth: 80 }}>
+
+                    <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          textAlign: 'center',
+                          minWidth: 80, // Adjust width as needed
+                          padding: 1,
+                          border: '1px solid #ccc',
+                          borderRadius: 1,
+                          fontWeight: 'bold',
+                          marginBottom: '10px',
+                          width: '-webkit-fill-available',
+                        }}>
+                        ${formatCustomPrice(Number(item.price))}
+                      </Typography>
                       <Button
                         variant="contained"
                         color={threshold?.active ? 'success' : 'error'}
                         startIcon={threshold?.active ? <NotificationsActiveIcon /> : <NotificationsOffIcon />}
-                        onClick={() => toggleNotification(item.guidID)} // Function to toggle active state
+                        onClick={() => toggleNotification()} // Function to toggle active state
                         sx={{
                           '& .MuiButton-startIcon': { marginRight: '0px', marginLeft: '0px' },
                           textTransform: 'none', // Keep the text case as is
                           padding: '8px 16px',
+                          width: '-webkit-fill-available',
                         }}></Button>
                     </Box>
 
@@ -310,14 +340,27 @@ const SidePanel = () => {
                           variant="outlined"
                           size="small"
                           onClick={() => {
-                            const adjustedPrice = Number(item.price) * (1 + percent / 100);
-                            updateUpperThreshold(adjustedPrice);
+                            if (Number(item.price) < 0.00001) {
+                              const adjustedPrice = (Number(item.price) * (1 + percent / 100)).toFixed(18); // Ensure 18 decimal precision
+                              updateUpperThreshold(adjustedPrice, item); // Pass as a string to avoid scientific notation
+                            } else {
+                              const adjustedPrice = (Number(item.price) * (1 + percent / 100)).toFixed(4); // Ensure 18 decimal precision
+                              updateUpperThreshold(adjustedPrice.toString(), item); // Pass as a string to avoid scientific notation
+                            }
                           }}>
                           +{percent}%
                         </Button>
                       ))}
                     </Box>
                   </Box>
+
+                  {alertMessage && (
+                    <Box p={1} mb={2} border="1px solid" borderColor="error.main" borderRadius={2}>
+                      <Typography variant="body2" color="error">
+                        {alertMessage}
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               </Collapse>
               <Divider />
