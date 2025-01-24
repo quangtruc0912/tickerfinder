@@ -3,7 +3,33 @@ import { WatchlistItem, useWatchListStorage, Threshold, useThresholdStorage } fr
 
 const INTERVAL = 5000;
 let watchlist: WatchlistItem[] = [];
-let threshold: Threshold[] = [];
+const notificationUrls: Record<string, string> = {};
+
+function formatCustomPrice(price: number): string {
+  if (price === undefined || price === 0) {
+    return '0';
+  }
+
+  // Ensure the price is represented as a fixed-point number string
+  const priceString = price.toFixed(20); // Use a sufficiently large precision
+  const [integerPart, decimalPart] = priceString.split('.');
+
+  if (!decimalPart) {
+    // If no decimal part, return as is
+    return priceString;
+  }
+
+  const zerosCount = decimalPart.match(/^0+/)?.[0]?.length || 0;
+
+  // Apply formatting only if there are more than 4 leading zeros
+  if (zerosCount > 4) {
+    const significantDigits = decimalPart.slice(zerosCount).replace(/0+$/, ''); // Remove trailing zeros
+    return `0.0{${zerosCount}}${significantDigits}`;
+  }
+
+  // Otherwise, return the price as a normal decimal without trailing zeros
+  return parseFloat(priceString).toString(); // Remove trailing zeros from normal decimals
+}
 
 const fetchPriorityCoin = async (symbol: string, watchlist: WatchlistItem) => {
   const res = await fetch(`https://api.kucoin.com/api/v1/market/stats?symbol=${symbol}-USDT`);
@@ -81,6 +107,49 @@ const fetchData = async () => {
   updatedData = updatedData.concat(data);
   useWatchListStorage.set(updatedData);
   watchlist = updatedData;
+  checkAlarms(updatedData);
+};
+
+const checkAlarms = async (data: WatchlistItem[]) => {
+  const triggered = (
+    await Promise.all(
+      data.map(async coin => {
+        const threshold = await useThresholdStorage.getThresholdFirstOrDefault(coin.guidID);
+        return threshold.active === true && (coin.price >= threshold.upper || coin.price <= threshold.lower)
+          ? coin
+          : null;
+      }),
+    )
+  ).filter((coin): coin is WatchlistItem => coin !== null); // Type guard for non-null values
+
+  if (triggered.length > 0) {
+    notifyUser(triggered);
+  }
+};
+
+const notifyUser = (triggered: WatchlistItem[]) => {
+  triggered.forEach(
+    coin => {
+      const notificationId = `priceAlert_${Date.now()}`;
+      const url = coin.isPriority ? `https://www.kucoin.com/trade/${coin.symbol}-USDT` : coin.url;
+      notificationUrls[notificationId] = url;
+
+      chrome.notifications.create(notificationId, {
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('icon-34.png'),
+        title: `${coin.name} (${coin.symbol}) hit $${formatCustomPrice(Number(coin.price))} 24H: ${Number(coin.changeRate24h) > 0 ? '+' : ''} ${Number(coin.changeRate24h).toFixed(2)}% `,
+        message: `Click to redirect to DEX/CEX`,
+      });
+      useThresholdStorage.removeThreshold(coin.guidID);
+    },
+    (notificationId: any) => {
+      if (chrome.runtime.lastError) {
+        console.error(chrome.runtime.lastError.message);
+      } else {
+        console.log(`Notification created with ID: ${notificationId}`);
+      }
+    },
+  );
 };
 
 chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
@@ -110,6 +179,16 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
         senderResponse(res);
       });
     return true;
+  }
+});
+
+chrome.notifications.onClicked.addListener((notificationId: string) => {
+  const url = notificationUrls[notificationId];
+  if (url) {
+    chrome.tabs.create({ url });
+    delete notificationUrls[notificationId];
+  } else {
+    console.error(`No URL found for notification ID: ${notificationId}`);
   }
 });
 

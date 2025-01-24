@@ -59,11 +59,13 @@ const SidePanel = () => {
     };
     fetchWatchlist();
 
-    const unsubscribe = useWatchListStorage.subscribe(() => {
+    const unsubscribeWatchList = useWatchListStorage.subscribe(() => {
       setWatchlist(useWatchListStorage.getSnapshot() || []);
     });
 
-    return () => unsubscribe(); // Cleanup on unmount
+    return () => {
+      unsubscribeWatchList();
+    }; // Cleanup on unmount
   }, []);
 
   const removeCoin = async (url: string, name: string, isPriority: boolean) => {
@@ -113,7 +115,6 @@ const SidePanel = () => {
       ...prev, // Keep the existing properties
       upper: price, // Update the 'lower' property
     }));
-    checkForAlerts(item);
   };
 
   const updateLowerThreshold = (price: string, item: WatchlistItem) => {
@@ -121,13 +122,12 @@ const SidePanel = () => {
       ...prev, // Keep the existing properties
       lower: price, // Update the 'lower' property
     }));
-    checkForAlerts(item);
   };
 
-  const checkForAlerts = (item: WatchlistItem) => {
-    if (threshold.upper < item.price && threshold.upper !== 0) {
+  const checkForAlerts = (item: WatchlistItem, price: string | number, threshold: string) => {
+    if (price < item.price && price !== 0 && threshold == 'upper') {
       setAlertMessage(`Alert: Notification Upper threshold cant be lower the actual Price.`);
-    } else if (threshold.lower > item.price && threshold.lower !== 0) {
+    } else if (price > item.price && price !== 0 && threshold == 'lower') {
       setAlertMessage(`Alert: Notification Lower threshold cant be higher the actual Price.`);
     } else {
       setAlertMessage(null); // Clear the alert if no condition is met
@@ -246,7 +246,7 @@ const SidePanel = () => {
                       onChange={event => {
                         const newValue = event.target.value;
                         updateLowerThreshold(newValue, item); // Update the lower threshold
-                        checkForAlerts(item); // Trigger alert check immediately
+                        checkForAlerts(item, newValue, 'lower'); // Trigger alert check immediately
                       }}
                     />
 
@@ -274,7 +274,7 @@ const SidePanel = () => {
                       onChange={event => {
                         const newValue = event.target.value;
                         updateUpperThreshold(newValue, item); // Update the upper threshold
-                        checkForAlerts(item); // Trigger alert check immediately
+                        checkForAlerts(item, newValue, 'upper'); // Trigger alert check immediately
                       }}
                     />
                   </Box>
