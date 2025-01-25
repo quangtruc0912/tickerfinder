@@ -49,6 +49,7 @@ function formatCustomPrice(price: number): string {
 }
 const SidePanel = () => {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
+  const [thresholdList, setThresholdList] = useState<Threshold[]>([]);
   let [threshold, setThreshold] = useState<Threshold>({ active: false, id: '', lower: 0, upper: 0 });
   const [expandedItem, setExpandedItem] = useState<string | null>(null); // Track expanded item by its unique ID
   const [alertMessage, setAlertMessage] = useState<string | null>(null); // To display alerts
@@ -63,8 +64,13 @@ const SidePanel = () => {
       setWatchlist(useWatchListStorage.getSnapshot() || []);
     });
 
+    const unsubscribeThresholdList = useThresholdStorage.subscribe(() => {
+      setThresholdList(useThresholdStorage.getSnapshot() || []);
+    });
+
     return () => {
       unsubscribeWatchList();
+      unsubscribeThresholdList();
     }; // Cleanup on unmount
   }, []);
 
@@ -78,12 +84,23 @@ const SidePanel = () => {
 
   const toggleExpandItem = (id: string) => {
     setExpandedItem(expandedItem === id ? null : id); // Toggle expanded state
-    chrome.runtime.sendMessage({ type: 'GET_THRESHOLD', id }, response => {
-      if (response) {
-        setThreshold(response);
-        setAlertMessage(null);
-      }
-    });
+    let threshold = thresholdList.find(item => item.id === id);
+    if (threshold === undefined) {
+      threshold = {
+        id: id,
+        active: false,
+        lower: 0,
+        upper: 0,
+      } as Threshold;
+    }
+    setThreshold(threshold);
+    setAlertMessage(null);
+    // chrome.runtime.sendMessage({ type: 'GET_THRESHOLD', id }, response => {
+    //   if (response) {
+    //     setThreshold(response);
+    //     setAlertMessage(null);
+    //   }
+    // });
   };
 
   // const toggleActiveThreshold = (url: string, name: string, isPriority: boolean) => {
@@ -203,10 +220,32 @@ const SidePanel = () => {
                       {Number(item.changeRate24h).toFixed(2)}%
                     </Typography>
                   </Box>
-
-                  <IconButton edge="end" onClick={() => removeCoin(item.url, item.name, item.isPriority)}>
-                    <DeleteIcon />
-                  </IconButton>
+                  <Box
+                    sx={{
+                      height: '72px',
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column', // Stack the children vertically
+                      alignItems: 'center', // Center align horizontally
+                    }}>
+                    <IconButton
+                      sx={{
+                        scale: 0.9,
+                      }}
+                      edge="end"
+                      onClick={() => removeCoin(item.url, item.name, item.isPriority)}>
+                      <DeleteIcon />
+                    </IconButton>
+                    <IconButton
+                      edge="end"
+                      color={thresholdList.find(i => i.id === item.guidID)?.active ? 'success' : 'error'}>
+                      {thresholdList.find(i => i.id === item.guidID)?.active ? (
+                        <NotificationsActiveIcon />
+                      ) : (
+                        <NotificationsOffIcon />
+                      )}
+                    </IconButton>
+                  </Box>
                 </Box>
               </ListItem>
               <Collapse in={expandedItem === item.guidID} timeout="auto" unmountOnExit>
@@ -224,6 +263,7 @@ const SidePanel = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginBottom: 2 }}>
                     {/* Lower Limit Input */}
                     <TextField
+                      disabled={threshold.active}
                       label="Lower Limit"
                       type="text"
                       fullWidth
@@ -242,6 +282,15 @@ const SidePanel = () => {
                             borderColor: '#007BFF', // Default border color
                           },
                         },
+                        '& .MuiInputLabel-root.Mui-disabled': {
+                          color: 'grey.400', // Label color when disabled
+                        },
+                        '& .MuiInputBase-input.Mui-disabled': {
+                          color: 'grey.500', // Set text color for disabled state
+                        },
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'grey.300', // Optional: Customize border color for disabled state
+                        },
                       }}
                       onChange={event => {
                         const newValue = event.target.value;
@@ -252,6 +301,7 @@ const SidePanel = () => {
 
                     {/* Upper Limit Input */}
                     <TextField
+                      disabled={threshold.active}
                       label="Upper Limit"
                       type="text"
                       value={threshold?.upper?.toString() || ''}
@@ -270,6 +320,9 @@ const SidePanel = () => {
                             borderColor: '#007BFF', // Default border color
                           },
                         },
+                        '& .MuiInputLabel-root.Mui-disabled': {
+                          color: 'grey.400', // Label color when disabled
+                        },
                       }}
                       onChange={event => {
                         const newValue = event.target.value;
@@ -285,6 +338,7 @@ const SidePanel = () => {
                     <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                       {[10, 20, 50].map(percent => (
                         <Button
+                          disabled={threshold.active}
                           key={percent}
                           variant="outlined"
                           size="small"
@@ -336,6 +390,7 @@ const SidePanel = () => {
                     <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                       {[10, 20, 50].map(percent => (
                         <Button
+                          disabled={threshold.active}
                           key={percent}
                           variant="outlined"
                           size="small"
