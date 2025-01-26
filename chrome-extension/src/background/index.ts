@@ -32,7 +32,7 @@ function formatCustomPrice(price: number): string {
 }
 
 const fetchPriorityCoin = async (symbol: string, watchlist: WatchlistItem) => {
-  const res = await fetch(`https://api.kucoin.com/api/v1/market/stats?symbol=${symbol}-USDT`);
+  const res = await fetch(`https://api.kucoin.com/api/v1/market/stats?symbol=${symbol}-USDT&timestamp=${Date.now()}`);
   const jsonData = await res.json();
   return {
     guidID: watchlist.guidID,
@@ -48,23 +48,44 @@ const fetchPriorityCoin = async (symbol: string, watchlist: WatchlistItem) => {
     isPriority: true,
   } as WatchlistItem;
 };
+function getUniqueChains(items: WatchlistItem[], property: keyof WatchlistItem): string[] {
+  const uniqueSet = new Set<string>();
 
-const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
-  const tokenAddresses = watchlist.map(item => item.address).join(',');
-  const urlList = watchlist.map(item => item.url);
-  const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${encodeURIComponent(tokenAddresses)}`, {
-    method: 'GET',
-    headers: {
-      'Cache-Control': 'no-cache',
-    },
-    cache: 'no-store',
+  items.forEach(item => {
+    const value = item[property];
+    if (typeof value === 'string') {
+      uniqueSet.add(value);
+    }
   });
 
-  const data = await res.json();
+  return Array.from(uniqueSet);
+}
+const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
+  // const urlList = watchlist.map(item => item.url);
+  const chainList = getUniqueChains(watchlist, 'chainId');
+  const results = await Promise.all(
+    chainList.map(async chain => {
+      const tokenAddresses = watchlist
+        .filter(item => item.chainId === chain)
+        .map(item => item.address)
+        .join(',');
+      const url = `https://api.dexscreener.com/tokens/v1/${chain}/${encodeURIComponent(tokenAddresses)}`;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to fetch data for ${chain}: ${response.statusText}`);
+        const data = await response.json();
+        return data; // Return the chain name and the fetched data
+      } catch (error) {
+        console.error(`Error fetching data for ${chain}:`, error);
+        return null; // Return null for failed requests
+      }
+    }),
+  ).then(result => {
+    const combined = result.flatMap(data => data);
+    return combined;
+  });
 
-  const updatedPairs = data.pairs.filter((item: any) => urlList.includes(item.url));
-
-  const watchListDataList: WatchlistItem[] = updatedPairs.map((item: any) => ({
+  const watchListDataList: WatchlistItem[] = results.map((item: any) => ({
     guidID: '',
     address: item.baseToken.address,
     chainId: item.chainId,
@@ -94,6 +115,7 @@ const fetchData = async () => {
   const storage = await useWatchListStorage.get();
   let updatedData: WatchlistItem[] = [];
   let prioritiesCoin = storage.filter(ele => ele.isPriority == true);
+  console.log(prioritiesCoin);
   let coins = storage.filter(ele => ele.isPriority == false);
   for (const coin of prioritiesCoin) {
     let priorityData: WatchlistItem;
@@ -156,7 +178,7 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
   if (message.type === 'FETCH_KUCOIN') {
     const ticker = message.ticker;
 
-    fetch(`https://api.kucoin.com/api/v1/market/stats?symbol=${ticker}-USDT`)
+    fetch(`https://api.kucoin.com/api/v1/market/stats?symbol=${ticker}-USDT&timestamp=${Date.now()}`)
       .then(res => {
         return res.json();
       })

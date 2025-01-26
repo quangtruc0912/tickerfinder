@@ -64,6 +64,13 @@ const SidePanel = () => {
       setWatchlist(useWatchListStorage.getSnapshot() || []);
     });
 
+    const fetchThreshold = async () => {
+      let list = await useThresholdStorage.getThreshold();
+      setThresholdList(list);
+    };
+    fetchWatchlist();
+    fetchThreshold();
+
     const unsubscribeThresholdList = useThresholdStorage.subscribe(() => {
       setThresholdList(useThresholdStorage.getSnapshot() || []);
     });
@@ -121,6 +128,7 @@ const SidePanel = () => {
           ...prevThreshold,
           active: !prevThreshold.active,
         };
+        console.log(updatedThreshold);
         useThresholdStorage.updateThreshold(updatedThreshold);
         return updatedThreshold;
       });
