@@ -18,11 +18,14 @@ export type WatchlistItem = {
   dexId: string;
   chainId: string;
   changeRate24h: string;
+  changeRate5m: string;
+  changeRate1h: string;
+  changeRate6h: string;
   price: string;
   isPriority: boolean;
   imageUrl: string;
 };
-const WATCHLIST_KEY = 'WATCH_LIST';
+const WATCHLIST_KEY = 'WATCH_LIST_EXT';
 const THRESHOLD_KEY = 'THRESHOLD';
 
 //clear stuff

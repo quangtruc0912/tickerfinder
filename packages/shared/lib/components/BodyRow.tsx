@@ -112,6 +112,9 @@ export default function BodyPairRow({ row }: BodyRowProps) {
         changeRate24h: row?.priceChange?.h24?.toString(),
         price: row.priceUsd,
         imageUrl: row.info?.imageUrl || '',
+        changeRate5m: row?.priceChange?.m5?.toString(),
+        changeRate1h: row?.priceChange?.h1?.toString(),
+        changeRate6h: row?.priceChange?.h24?.toString(),
       });
     }
 

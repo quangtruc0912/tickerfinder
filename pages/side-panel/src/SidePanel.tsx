@@ -21,6 +21,7 @@ import {
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
+import ChangeRateCard from './ChangeRateCard';
 
 function formatCustomPrice(price: number): string {
   if (price === undefined || price === 0) {
@@ -39,7 +40,7 @@ function formatCustomPrice(price: number): string {
   const zerosCount = decimalPart.match(/^0+/)?.[0]?.length || 0;
 
   // Apply formatting only if there are more than 4 leading zeros
-  if (zerosCount > 4) {
+  if (zerosCount > 4 && integerPart == '0') {
     const significantDigits = decimalPart.slice(zerosCount).replace(/0+$/, ''); // Remove trailing zeros
     return `0.0{${zerosCount}}${significantDigits}`;
   }
@@ -128,7 +129,7 @@ const SidePanel = () => {
           ...prevThreshold,
           active: !prevThreshold.active,
         };
-        console.log(updatedThreshold);
+
         useThresholdStorage.updateThreshold(updatedThreshold);
         return updatedThreshold;
       });
@@ -186,75 +187,87 @@ const SidePanel = () => {
             <React.Fragment key={item.guidID}>
               <ListItem
                 alignItems="center"
-                sx={{ display: 'flex', justifyContent: 'space-between' }}
                 onClick={() => toggleExpandItem(item.guidID)} // Expand/Collapse on click
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <ListItemAvatar>
-                    <Avatar
-                      src={item.isPriority ? chrome.runtime.getURL(item?.imageUrl) : item?.imageUrl}
-                      alt={item.symbol}
-                    />
-                  </ListItemAvatar>
-                  <Box sx={{ marginLeft: 1 }}>
-                    <ListItemText
-                      primary={
-                        <Typography variant="body1" fontWeight="500">
-                          {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
-                        </Typography>
-                      }
-                      secondary={
-                        <Typography variant="body2" color="gray">
-                          {item.symbol}
-                        </Typography>
-                      }
-                    />
+                sx={{ display: 'block' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '-webkit-fill-available' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <ListItemAvatar>
+                      <Avatar
+                        src={item.isPriority ? chrome.runtime.getURL(item?.imageUrl) : item?.imageUrl}
+                        alt={item.symbol}
+                      />
+                    </ListItemAvatar>
+                    <Box sx={{ marginLeft: 1 }}>
+                      <ListItemText
+                        primary={
+                          <Typography variant="body1" fontWeight="500">
+                            {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
+                          </Typography>
+                        }
+                        secondary={
+                          <Typography variant="body2" color="gray">
+                            {item.symbol}
+                          </Typography>
+                        }
+                      />
+                    </Box>
                   </Box>
-                </Box>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5, // Space between elements
-                  }}>
-                  <Box sx={{ textAlign: 'right' }}>
-                    <Typography variant="body2" fontWeight="500">
-                      ${formatCustomPrice(Number(item.price))}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color={Number(item.changeRate24h) > 0 ? 'success.main' : 'error.main'}>
-                      {Number(item.changeRate24h) > 0 ? '+' : ''}
-                      {Number(item.changeRate24h).toFixed(2)}%
-                    </Typography>
-                  </Box>
+
                   <Box
                     sx={{
-                      height: '72px',
-                      flex: 1,
                       display: 'flex',
-                      flexDirection: 'column', // Stack the children vertically
-                      alignItems: 'center', // Center align horizontally
+                      alignItems: 'center',
+                      gap: 1.5, // Space between elements
                     }}>
-                    <IconButton
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography variant="body2" fontWeight="500">
+                        ${formatCustomPrice(Number(item.price))}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color={Number(item.changeRate24h) > 0 ? 'success.main' : 'error.main'}>
+                        {Number(item.changeRate24h) > 0 ? '+' : ''}
+                        {Number(item.changeRate24h).toFixed(2)}%
+                      </Typography>
+                    </Box>
+                    <Box
                       sx={{
-                        scale: 0.9,
-                      }}
-                      edge="end"
-                      onClick={() => removeCoin(item.url, item.name, item.isPriority)}>
-                      <DeleteIcon />
-                    </IconButton>
-                    <IconButton
-                      edge="end"
-                      color={thresholdList.find(i => i.id === item.guidID)?.active ? 'success' : 'error'}>
-                      {thresholdList.find(i => i.id === item.guidID)?.active ? (
-                        <NotificationsActiveIcon />
-                      ) : (
-                        <NotificationsOffIcon />
-                      )}
-                    </IconButton>
+                        height: '72px',
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column', // Stack the children vertically
+                        alignItems: 'center', // Center align horizontally
+                      }}>
+                      <IconButton
+                        sx={{
+                          scale: 0.9,
+                        }}
+                        edge="end"
+                        onClick={() => removeCoin(item.url, item.name, item.isPriority)}>
+                        <DeleteIcon />
+                      </IconButton>
+                      <IconButton
+                        edge="end"
+                        color={thresholdList.find(i => i.id === item.guidID)?.active ? 'success' : 'error'}>
+                        {thresholdList.find(i => i.id === item.guidID)?.active ? (
+                          <NotificationsActiveIcon />
+                        ) : (
+                          <NotificationsOffIcon />
+                        )}
+                      </IconButton>
+                    </Box>
                   </Box>
                 </Box>
+                {item.isPriority === false && (
+                  <Box>
+                    <ChangeRateCard
+                      changeRate24h={item.changeRate24h}
+                      changeRate5m={item.changeRate5m}
+                      changeRate1h={item.changeRate1h}
+                      changeRate6h={item.changeRate6h}
+                    />
+                  </Box>
+                )}
               </ListItem>
               <Collapse in={expandedItem === item.guidID} timeout="auto" unmountOnExit>
                 <Box

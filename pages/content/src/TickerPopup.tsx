@@ -30,11 +30,21 @@ export default function TickerPopup() {
       const scrollTop = window.scrollY;
       const scrollLeft = window.scrollX;
 
-      setPopupPosition({
-        top: rect.top + scrollTop + rect.height, // Place the popup just below the hovered element
-        left: rect.left + scrollLeft + rect.width / 4, // Center the popup relative to the hovered element
-      });
+      // Define default popup position (below and slightly centered relative to the target)
+      let top = rect.top + scrollTop + rect.height; // Place the popup just below the hovered element
+      let left = rect.left + scrollLeft + rect.width / 4; // Center the popup relative to the hovered element
 
+      // Check if the popup would overflow the right edge of the screen
+      const popupWidth = 600; // Assuming a fixed width for the popup; adjust as needed
+      const viewportWidth = window.innerWidth;
+      const wouldOverflowRight = left + popupWidth > viewportWidth;
+
+      if (wouldOverflowRight) {
+        // If it would overflow, position the popup to the left of the element
+        left = rect.left + scrollLeft - popupWidth + rect.width;
+      }
+
+      setPopupPosition({ top, left });
       setPopupText(target.dataset.popupText); // Set the text content from the data attribute
     }
   };

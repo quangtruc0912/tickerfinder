@@ -55,7 +55,7 @@ const BodySkeleton = ({ rows, heads }: BodySkeletonProps) => {
               <Skeleton width={100} />
             </Box>
           ) : (
-            <Skeleton />
+            <Skeleton width={50} />
           )}
         </TableCell>
       ))}

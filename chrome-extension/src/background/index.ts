@@ -22,7 +22,7 @@ function formatCustomPrice(price: number): string {
   const zerosCount = decimalPart.match(/^0+/)?.[0]?.length || 0;
 
   // Apply formatting only if there are more than 4 leading zeros
-  if (zerosCount > 4) {
+  if (zerosCount > 4 && integerPart == '0') {
     const significantDigits = decimalPart.slice(zerosCount).replace(/0+$/, ''); // Remove trailing zeros
     return `0.0{${zerosCount}}${significantDigits}`;
   }
@@ -46,6 +46,9 @@ const fetchPriorityCoin = async (symbol: string, watchlist: WatchlistItem) => {
     url: watchlist.url,
     imageUrl: `content/${watchlist.symbol.toUpperCase()}.svg`,
     isPriority: true,
+    changeRate5m: '0',
+    changeRate1h: '0',
+    changeRate6h: '0',
   } as WatchlistItem;
 };
 function getUniqueChains(items: WatchlistItem[], property: keyof WatchlistItem): string[] {
@@ -91,6 +94,9 @@ const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
     chainId: item.chainId,
     dexId: item.dexId,
     changeRate24h: item.priceChange.h24 || 0,
+    changeRate5m: item.priceChange.m5 || 0,
+    changeRate1h: item.priceChange.h1 || 0,
+    changeRate6h: item.priceChange.h6 || 0,
     price: item.priceUsd || 0,
     name: item.baseToken.name,
     symbol: item.baseToken.symbol,
@@ -115,7 +121,6 @@ const fetchData = async () => {
   const storage = await useWatchListStorage.get();
   let updatedData: WatchlistItem[] = [];
   let prioritiesCoin = storage.filter(ele => ele.isPriority == true);
-  console.log(prioritiesCoin);
   let coins = storage.filter(ele => ele.isPriority == false);
   for (const coin of prioritiesCoin) {
     let priorityData: WatchlistItem;

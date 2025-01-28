@@ -105,6 +105,9 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
         changeRate24h: row.changeRate,
         price: row.sell,
         imageUrl: logo,
+        changeRate5m: '0',
+        changeRate1h: '0',
+        changeRate6h: '0',
       });
     }
 
