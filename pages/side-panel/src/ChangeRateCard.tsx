@@ -29,7 +29,7 @@ const ChangeRateCard: React.FC<ChangeRateCardProps> = ({ changeRate24h, changeRa
             py: 1.5,
             boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
           }}>
-          <Typography variant="body2" color="white" fontWeight="bold" gutterBottom>
+          <Typography variant="body2" fontWeight="bold" gutterBottom>
             {label}
           </Typography>
           <Box display="flex" alignItems="center">

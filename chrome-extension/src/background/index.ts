@@ -1,6 +1,8 @@
 import 'webextension-polyfill';
 import { WatchlistItem, useWatchListStorage, Threshold, useThresholdStorage } from '@extension/storage';
 
+const INIT = ['BTC', 'SOL', 'ETH'];
+
 const INTERVAL = 5000;
 let watchlist: WatchlistItem[] = [];
 const notificationUrls: Record<string, string> = {};
@@ -206,6 +208,16 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
         senderResponse(res);
       });
     return true;
+  } else if (message.type === 'open_side_panel') {
+    (async () => {
+      // This will open a tab-specific side panel only on the current tab.
+      await chrome.sidePanel.open({ tabId: message.tab.id });
+      chrome.sidePanel.setOptions({
+        tabId: message?.tab.id,
+        path: 'side-panel/index.html',
+        enabled: true,
+      });
+    })();
   }
 });
 
@@ -216,6 +228,108 @@ chrome.notifications.onClicked.addListener((notificationId: string) => {
     delete notificationUrls[notificationId];
   } else {
     console.error(`No URL found for notification ID: ${notificationId}`);
+  }
+});
+
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+const PRIORITYCHAINLIST: readonly [string, string][] = [
+  ['BTC', 'Bitcoin'],
+  ['SOL', 'Solana'],
+  ['ETH', 'Ethereum'],
+  ['SUI', 'SUI'],
+  ['BNB', 'Binance Smart Chain'],
+  ['PLS', 'Pulse Chain'],
+  ['XRP', 'XRPL'],
+  ['TON', 'TON Chain'],
+  ['S', 'SONIC'],
+  ['AVAX', 'Avalanche'],
+  ['ARB', 'Arbitrum'],
+  ['MATIC', 'Polygon'],
+  ['ZK', 'zkSync'],
+  ['TRX', 'Tron'],
+  ['CRO', 'Cronos'],
+  ['APT', 'Aptos'],
+  ['ICP', 'ICP'],
+  ['OSMO', 'Osmosis'],
+  ['FTM', 'Fantom'],
+  ['HBAR', 'Hedera'],
+  ['ALGO', 'Algorand'],
+  ['NEAR', 'NEAR'],
+  ['BLAST', 'BLAST'],
+  ['OP', 'Optimism'],
+  ['INJ', 'Injective'],
+  ['APE', 'APE Chain'],
+  ['EGLD', 'MultiversX'],
+  ['MNT', 'Mantle'],
+  ['STRK', 'Starknet'],
+  ['VANA', 'VANA'],
+  ['ADA', 'Cardano'],
+  ['WLD', 'World Chain'],
+  ['SEI', 'SEI Chain'],
+  ['DOGE', 'Dogechain'],
+  ['SCR', 'Scroll'],
+  ['BONE', 'Bone Shiba Swap'],
+  ['ROSE', 'Oasis Sapphire'],
+  ['DOT', 'Polkadot'],
+  ['KAVA', 'KAVA'],
+  ['GLMR', 'Moonbeam'],
+  ['FLR', 'Flare'],
+  ['ETHW', 'Ethereum PoW'],
+  ['NRG', 'Energi'],
+  ['CANTO', 'CANTO'],
+  ['CELO', 'CELO'],
+  ['ETC', 'Ethereum Classic'],
+  ['FRAX', 'Frax Ether'],
+  ['BB', 'BounceBit'],
+  ['VENOM', 'Venom'],
+  ['EVMOS', 'EVMOS'],
+  ['DAI', 'Gnosis Chain'],
+  ['MOVR', 'Moonriver'],
+  ['ASTR', 'Astar Network'],
+  ['KCS', 'KCS'],
+  ['BOBA', 'BOBA NetWork'],
+  ['WAN', 'WAN Chain'],
+  ['ZETA', 'ZETA Chain'],
+  ['TT', 'ThunderCore (TT)'],
+];
+
+function findInPriorityChainList(search: string): [string, string] | null {
+  const result = PRIORITYCHAINLIST.find(([key, value]) => key === search || value === search);
+  return result || null; // Return null if not found
+}
+chrome.runtime.onInstalled.addListener(async details => {
+  console.log('Extension installed for the first time!');
+  if (details.reason === 'install') {
+    for (const coin of INIT) {
+      const findResult = findInPriorityChainList(coin);
+      let uuid = generateUUID();
+      if (findResult) {
+        await useWatchListStorage.addToWatchlist({
+          guidID: uuid,
+          address: '',
+          isPriority: true,
+          name: findResult[1],
+          symbol: findResult[0],
+          url: '',
+          dexId: '',
+          chainId: '',
+          changeRate24h: '0',
+          price: '0',
+          imageUrl: `content/${coin.toUpperCase()}.svg`,
+          changeRate5m: '0',
+          changeRate1h: '0',
+          changeRate6h: '0',
+        });
+      }
+    }
+  } else if (details.reason === 'update') {
+    // console.log("Extension updated to a new version.");
   }
 });
 

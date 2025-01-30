@@ -17,12 +17,13 @@ export default function TickerPopup() {
   const handleMouseOver = async (e: Event) => {
     const target = e.target as HTMLElement;
 
+    const popUpText = target.dataset.popupText || target.parentElement?.dataset.popupText;
     // Check if the target is an <a> element with a specific data attribute
-    if (target && target.dataset.popupText) {
+    if (target && popUpText) {
       setShowPopup(true); // Show the popup
       setIsLoading(true);
 
-      setTicker(target.dataset.popupText.substring(1));
+      setTicker(popUpText.substring(1));
 
       const rect = target.getBoundingClientRect();
 
@@ -45,7 +46,7 @@ export default function TickerPopup() {
       }
 
       setPopupPosition({ top, left });
-      setPopupText(target.dataset.popupText); // Set the text content from the data attribute
+      setPopupText(popUpText); // Set the text content from the data attribute
     }
   };
 

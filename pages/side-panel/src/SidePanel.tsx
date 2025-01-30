@@ -54,6 +54,7 @@ const SidePanel = () => {
   let [threshold, setThreshold] = useState<Threshold>({ active: false, id: '', lower: 0, upper: 0 });
   const [expandedItem, setExpandedItem] = useState<string | null>(null); // Track expanded item by its unique ID
   const [alertMessage, setAlertMessage] = useState<string | null>(null); // To display alerts
+  const [changeRateDetail, setChangeRateDetail] = useState<boolean>(true);
   useEffect(() => {
     const fetchWatchlist = async () => {
       let list = await useWatchListStorage.getWatchlist();
@@ -109,6 +110,10 @@ const SidePanel = () => {
     //     setAlertMessage(null);
     //   }
     // });
+  };
+
+  const toggleChangeRateDetail = () => {
+    setChangeRateDetail(!changeRateDetail);
   };
 
   // const toggleActiveThreshold = (url: string, name: string, isPriority: boolean) => {
@@ -178,9 +183,7 @@ const SidePanel = () => {
         },
       }}>
       <Box p={2} display="flex" flexDirection="column" height="100%">
-        <Typography variant="h6" gutterBottom>
-          Crypto Watchlist
-        </Typography>
+        <Button onClick={toggleChangeRateDetail}>Display Change Rate Detail</Button>
         <Divider />
         <List>
           {watchlist?.map(item => (
@@ -258,7 +261,7 @@ const SidePanel = () => {
                     </Box>
                   </Box>
                 </Box>
-                {item.isPriority === false && (
+                {item.isPriority === false && changeRateDetail && (
                   <Box>
                     <ChangeRateCard
                       changeRate24h={item.changeRate24h}

@@ -62,7 +62,7 @@ export const PRIORITYCHAINLIST: readonly [string, string][] = [
   ['TT', 'ThunderCore (TT)'],
 ];
 
-function findInPriorityChainList(search: string): [string, string] | null {
+export function findInPriorityChainList(search: string): [string, string] | null {
   const result = PRIORITYCHAINLIST.find(([key, value]) => key === search || value === search);
   return result || null; // Return null if not found
 }

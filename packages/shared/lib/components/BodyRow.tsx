@@ -15,20 +15,26 @@ import { generateUUID } from '../utils/index';
 
 function numberFormat(num: number, options?: any) {
   let temp = 2;
+
   if (num < 1 && num > 0.0001) {
     temp = 4;
   }
   if (num < 0.0001) {
     temp = 8;
   }
+
+  // If the number is greater than 1,000,000, use compact notation
+  const isLargeNumber = num >= 1_000_000;
+
   let defaultOptions = {
     style: 'currency',
     currency: 'USD',
     maximumFractionDigits: temp,
     minimumFractionDigits: 2,
-    notation: 'standard',
-    compactDisplay: 'long',
+    notation: isLargeNumber ? 'compact' : 'standard', // Use compact notation for large numbers
+    compactDisplay: 'short', // Short format (e.g., "1.2M" instead of "1.2 million")
   };
+
   return new Intl.NumberFormat('en-US', { ...defaultOptions, ...options }).format(num);
 }
 
