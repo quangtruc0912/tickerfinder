@@ -22,6 +22,7 @@ import { Delete as DeleteIcon } from '@mui/icons-material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import ChangeRateCard from './ChangeRateCard';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
 function formatCustomPrice(price: number): string {
   if (price === undefined || price === 0) {
@@ -165,6 +166,14 @@ const SidePanel = () => {
     }
   };
 
+  const handleRedirect = (item: WatchlistItem) => {
+    if (item?.url) {
+      window.open(item?.url, '_blank');
+    } else {
+      window.open(`https://www.kucoin.com/trade/${item.symbol}-USDT`, '_blank');
+    }
+  };
+
   return (
     <Drawer
       anchor="left"
@@ -194,11 +203,26 @@ const SidePanel = () => {
                 sx={{ display: 'block' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '-webkit-fill-available' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <ListItemAvatar>
+                    <ListItemAvatar style={{ position: 'relative' }}>
                       <Avatar
                         src={item.isPriority ? chrome.runtime.getURL(item?.imageUrl) : item?.imageUrl}
                         alt={item.symbol}
                       />
+                      <IconButton
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          right: 0,
+                          backgroundColor: 'white', // Optional: To make the button stand out
+                          padding: 4,
+                        }}
+                        size="small"
+                        onClick={event => {
+                          event.stopPropagation();
+                          handleRedirect(item);
+                        }}>
+                        <OpenInNewIcon fontSize="small" sx={{ fontSize: 10 }} />
+                      </IconButton>
                     </ListItemAvatar>
                     <Box sx={{ marginLeft: 1 }}>
                       <ListItemText

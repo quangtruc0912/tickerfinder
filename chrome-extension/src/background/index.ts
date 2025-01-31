@@ -1,6 +1,6 @@
 import 'webextension-polyfill';
 import { WatchlistItem, useWatchListStorage, Threshold, useThresholdStorage } from '@extension/storage';
-
+let isSidePanelOpen = false; // Track whether the side panel is open
 const INIT = ['BTC', 'SOL', 'ETH'];
 
 const INTERVAL = 5000;
@@ -210,13 +210,22 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
     return true;
   } else if (message.type === 'open_side_panel') {
     (async () => {
-      // This will open a tab-specific side panel only on the current tab.
-      await chrome.sidePanel.open({ tabId: message.tab.id });
-      chrome.sidePanel.setOptions({
-        tabId: message?.tab.id,
-        path: 'side-panel/index.html',
-        enabled: true,
-      });
+      if (isSidePanelOpen) {
+        isSidePanelOpen = false;
+        chrome.sidePanel.setOptions({
+          tabId: message?.tab.id,
+          path: 'side-panel/index.html',
+          enabled: false, // Disables the side panel
+        });
+      } else {
+        isSidePanelOpen = true;
+        await chrome.sidePanel.open({ tabId: message.tab.id });
+        chrome.sidePanel.setOptions({
+          tabId: message?.tab.id,
+          path: 'side-panel/index.html',
+          enabled: true,
+        });
+      }
     })();
   }
 });
@@ -333,4 +342,32 @@ chrome.runtime.onInstalled.addListener(async details => {
   }
 });
 
+chrome.commands.onCommand.addListener(async command => {
+  if (command === 'toggle_side_panel') {
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      if (isSidePanelOpen) {
+        chrome.sidePanel.setOptions({
+          enabled: false, // Disables the side panel
+        });
+        isSidePanelOpen = false;
+      } else {
+        chrome.sidePanel.setOptions({
+          enabled: true, // Disables the side panel
+        });
+        chrome.sidePanel.open({ windowId: tab.windowId });
+        isSidePanelOpen = true;
+      }
+    });
+    // (async () => {
+    //   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    //   // This will open a tab-specific side panel only on the current tab.
+    //   await chrome.sidePanel.open({ windowId: tab.windowId });
+    //   chrome.sidePanel.setOptions({
+    //     tabId: tab.id,
+    //     path: 'side-panel/index.html',
+    //     enabled: true,
+    //   });
+    // })()
+  }
+});
 setInterval(fetchData, INTERVAL);

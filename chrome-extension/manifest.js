@@ -45,6 +45,14 @@ const manifest = withSidePanel({
   host_permissions: [...allowedWebsites, ...allowedAPIs], // Twitter/X and APIs
   permissions: ['storage', 'scripting', 'tabs', 'notifications'],
   options_page: 'options/index.html',
+  commands: {
+    toggle_side_panel: {
+      suggested_key: {
+        default: 'Ctrl+B',
+      },
+      description: 'Toggle side panel',
+    },
+  },
   background: {
     service_worker: 'background.iife.js',
     type: 'module',
@@ -53,6 +61,7 @@ const manifest = withSidePanel({
     default_popup: 'popup/index.html',
     default_icon: 'icon-34.png',
   },
+
   // chrome_url_overrides: {
   //   newtab: 'new-tab/index.html',
   // },

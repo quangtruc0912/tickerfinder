@@ -62,7 +62,7 @@ const Popup = () => {
           Click to inject Content Script
         </button> */}
         <ToggleButton>Toggle theme</ToggleButton>
-        <SidepanelButton>Side panel</SidepanelButton>
+        <SidepanelButton>Side panel / CTR + B</SidepanelButton>
       </header>
     </div>
   );

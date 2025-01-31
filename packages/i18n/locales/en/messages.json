@@ -1,11 +1,11 @@
 {
   "extensionDescription": {
     "description": "Extension description",
-    "message": "Working on it"
+    "message": "Improve your Crypto experience on X/Twitter with new features."
   },
   "extensionName": {
     "description": "Extension name",
-    "message": "Ticker Loader"
+    "message": "STFL"
   },
   "toggleTheme": {
     "message": "Toggle theme"
