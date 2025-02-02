@@ -89,11 +89,22 @@ const injectIndicating = async () => {
   //FIND FROM A , COULD BE DIV AND SPAN NEXT, EACH HAVE DIF WAY TO IMPLEMENT
   const elements = Array.from(document.querySelectorAll('a'));
 
+  const spans = Array.from(document.querySelectorAll('span'));
+
+  var filteredSpan = spans.filter(el => el.textContent && el.textContent.match(regexStr) && el.dataset.popupText);
+
   var filteredElements = elements.filter(
     el => el.textContent && el.textContent.match(regexStr) && el.dataset[TICKER_PROCESSED],
   );
 
-  var uniqueTickers = getUniqueTextContentFromPriority(filteredElements, PRIORITYCHAINLIST);
+  var uniqueTickersElements = getUniqueTextContentFromPriority(filteredElements, PRIORITYCHAINLIST);
+
+  var uniqueTickersSpan = getUniqueTextContentFromPriority(filteredSpan, PRIORITYCHAINLIST);
+
+  var uniqueTickers = uniqueTickersElements.concat(uniqueTickersSpan);
+
+  console.log(filteredSpan);
+
   uniqueTickers.forEach((ticker: string) => {
     chrome.runtime.sendMessage({ type: 'FETCH_KUCOIN', ticker }, response => {
       if (response.data) {

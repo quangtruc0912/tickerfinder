@@ -43,7 +43,7 @@ const manifest = withSidePanel({
   version: packageJson.version,
   description: '__MSG_extensionDescription__',
   host_permissions: [...allowedWebsites, ...allowedAPIs], // Twitter/X and APIs
-  permissions: ['storage', 'scripting', 'tabs', 'notifications'],
+  permissions: ['storage', 'scripting', 'notifications', 'contextMenus'],
   options_page: 'options/index.html',
   commands: {
     toggle_side_panel: {
@@ -61,10 +61,6 @@ const manifest = withSidePanel({
     default_popup: 'popup/index.html',
     default_icon: 'icon-34.png',
   },
-
-  // chrome_url_overrides: {
-  //   newtab: 'new-tab/index.html',
-  // },
   icons: {
     128: 'icon-128.png',
   },

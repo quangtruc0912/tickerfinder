@@ -313,6 +313,11 @@ function findInPriorityChainList(search: string): [string, string] | null {
   return result || null; // Return null if not found
 }
 chrome.runtime.onInstalled.addListener(async details => {
+  chrome.contextMenus.create({
+    id: 'rightClickAlert',
+    title: 'Display Price',
+    contexts: ['selection'],
+  });
   console.log('Extension installed for the first time!');
   if (details.reason === 'install') {
     for (const coin of INIT) {
@@ -358,16 +363,37 @@ chrome.commands.onCommand.addListener(async command => {
         isSidePanelOpen = true;
       }
     });
-    // (async () => {
-    //   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    //   // This will open a tab-specific side panel only on the current tab.
-    //   await chrome.sidePanel.open({ windowId: tab.windowId });
-    //   chrome.sidePanel.setOptions({
-    //     tabId: tab.id,
-    //     path: 'side-panel/index.html',
-    //     enabled: true,
-    //   });
-    // })()
   }
 });
+
+chrome.tabs.onCreated.addListener(tab => {
+  if (tab.pendingUrl === 'chrome://newtab/' || tab.url === 'chrome://newtab/') {
+  }
+});
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'rightClickAlert' && tab?.id) {
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: highlightSelection,
+    });
+  }
+});
+
+function highlightSelection() {
+  const selection = window.getSelection();
+  if (!selection?.rangeCount) return;
+
+  const range = selection.getRangeAt(0);
+  const span = document.createElement('span');
+  span.style.backgroundColor = '#add8e6';
+  const text = '$' + selection.toString();
+  span.dataset.popupText = text ?? undefined;
+  span.dataset['__TICKER_PROCESSED'] = '1';
+  span.textContent = text;
+
+  range.deleteContents();
+  range.insertNode(span);
+}
+
 setInterval(fetchData, INTERVAL);
