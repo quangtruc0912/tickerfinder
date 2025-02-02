@@ -1,11 +1,11 @@
 {
   "extensionDescription": {
     "description": "Extension description",
-    "message": "React, Typescript, Vite를 사용한 크롬 익스텐션 보일러플레이트입니다."
+    "message": "Enhance your crypto experience on X/Twitter with real-time price updates, instant alerts, and seamless market tracking—all in one place. 🚀"
   },
   "extensionName": {
     "description": "Extension name",
-    "message": "크롬 익스텐션 보일러플레이트"
+    "message": "CrXpto Tracker"
   },
   "toggleTheme": {
     "message": "테마 변경"

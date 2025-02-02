@@ -1,11 +1,11 @@
 {
   "extensionDescription": {
     "description": "Extension description",
-    "message": "Improve your Crypto experience on X/Twitter with new features."
+    "message": "Enhance your crypto experience on X/Twitter with real-time price updates, instant alerts, and seamless market tracking—all in one place. 🚀"
   },
   "extensionName": {
     "description": "Extension name",
-    "message": "Save That For Later"
+    "message": "CrXpto Tracker"
   },
   "toggleTheme": {
     "message": "Toggle theme"
