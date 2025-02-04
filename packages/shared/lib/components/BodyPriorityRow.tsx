@@ -12,6 +12,7 @@ import { useWatchListStorage } from '@extension/storage';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
 import { generateUUID } from '../utils/index';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
 function numberFormat(num: number, options?: any) {
   let temp = 2;
@@ -131,14 +132,28 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
       }}
       onClick={() => window.open(`https://www.kucoin.com/trade/${row.ticker}-USDT`, '_blank')}>
       <TableCell>
-        <IconButton
-          onClick={event => {
-            event.stopPropagation(); // Prevent the click from bubbling to the TableRow
-            handleToggle();
-          }}
-          color={isInWatchlist ? 'warning' : 'default'}>
-          {isInWatchlist ? <StarIcon /> : <StarBorderIcon />}
-        </IconButton>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <IconButton
+            onClick={event => {
+              event.stopPropagation(); // Prevent the click from bubbling to the TableRow
+              handleToggle();
+            }}
+            color={isInWatchlist ? 'warning' : 'default'}>
+            {isInWatchlist ? <StarIcon /> : <StarBorderIcon />}
+          </IconButton>
+          <IconButton
+            style={{
+              backgroundColor: 'white', // Optional: To make the button stand out
+              padding: 4,
+            }}
+            size="small"
+            onClick={event => {
+              // event.stopPropagation();
+              // handleRedirect(item);
+            }}>
+            <OpenInNewIcon fontSize="small" sx={{ fontSize: 10 }} />
+          </IconButton>
+        </div>
       </TableCell>
       <TableCell
         title={`Dex : Kucoin`} // The full text will appear when you hover over the cell

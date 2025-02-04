@@ -25,7 +25,12 @@ function withSidePanel(manifest) {
   });
 }
 
-const allowedWebsites = ['https://twitter.com/*', 'https://x.com/*'];
+const allowedWebsites = [
+  'https://twitter.com/*',
+  'https://x.com/*',
+  'https://facebook.com/*',
+  'https://www.facebook.com/*',
+];
 const allowedAPIs = ['https://api.dexscreener.com/*', 'https://api.kucoin.com/*'];
 
 /**

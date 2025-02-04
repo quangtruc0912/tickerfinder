@@ -40,20 +40,20 @@ const Popup = () => {
 
   return (
     <div className={`App ${isLight ? 'bg-slate-50' : 'bg-gray-800'}`}>
-      <header className={`App-header ${isLight ? 'text-gray-900' : 'text-gray-100'}`}>
-        <img src={chrome.runtime.getURL(logo)} className="App-logo" alt="logo" />
+      {/* <header className={`App-header ${isLight ? 'text-gray-900' : 'text-gray-100'}`}> */}
+      <img src={chrome.runtime.getURL(logo)} className="App-logo" alt="logo" />
 
-        <Stack sx={{ width: '100%' }} spacing={1}>
-          <Alert severity="info">Most of the data fetch directly from Dexscreener.</Alert>
-          <Alert severity="info">
-            Top coin(BTC,ETH,SOL,....) will prioritize fetch from CEX(currently Kucoin) and be able to have price
-            indicator.
-          </Alert>
-        </Stack>
-        {/* <p>
+      <Stack sx={{ width: '100%' }} spacing={1}>
+        <Alert severity="info">Most of the data fetch directly from Dexscreener.</Alert>
+        <Alert severity="info">
+          Top coin(BTC,ETH,SOL,....) will prioritize fetch from CEX(currently Kucoin) and be able to have price
+          indicator.
+        </Alert>
+      </Stack>
+      {/* <p>
           Edit <code>pages/popup/src/Popup.tsx</code>
         </p> */}
-        {/* <button
+      {/* <button
           className={
             'font-bold mt-4 py-1 px-4 rounded shadow hover:scale-105 ' +
             (isLight ? 'bg-blue-200 text-black' : 'bg-gray-700 text-white')
@@ -61,9 +61,20 @@ const Popup = () => {
           onClick={injectContentScript}>
           Click to inject Content Script
         </button> */}
+      <div className="flex justify-center gap-2 mt-4">
         <ToggleButton>Toggle theme</ToggleButton>
         <SidepanelButton>Side panel / CTR + B</SidepanelButton>
-      </header>
+      </div>
+      {/* </header> */}
+      <div className="flex justify-center gap-4 p-4">
+        <SocialMediaButton href="https://x.com/crXptoExt" icon="twitter" label="Twitter/X" isLight={isLight} />
+        {/* <SocialMediaButton
+          href="https://github.com/YourGitHubHandle"
+          icon="github"
+          label="GitHub"
+          isLight={isLight}
+        /> */}
+      </div>
     </div>
   );
 };
@@ -100,6 +111,31 @@ const SidepanelButton = (props: ComponentPropsWithoutRef<'button'>) => {
       }}>
       {props.children}
     </button>
+  );
+};
+
+const SocialMediaButton = ({
+  href,
+  icon,
+  label,
+  isLight,
+}: {
+  href: string;
+  icon: string;
+  label: string;
+  isLight: boolean;
+}) => {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow hover:scale-105 transition-transform ${
+        isLight ? 'bg-white text-gray-900' : 'bg-gray-700 text-gray-100'
+      }`}>
+      <img src={chrome.runtime.getURL(`popup/${icon}.svg`)} alt={label} className="w-5 h-5" />
+      <span>{label}</span>
+    </a>
   );
 };
 
