@@ -227,6 +227,8 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
         });
       }
     })();
+  } else if (message.type === 'open_options') {
+    chrome.runtime.openOptionsPage();
   }
 });
 

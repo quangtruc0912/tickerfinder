@@ -1,6 +1,6 @@
 import '@src/SidePanel.css';
-import { withErrorBoundary, withSuspense } from '@extension/shared';
-import { Threshold, useWatchListStorage, WatchlistItem, useThresholdStorage } from '@extension/storage';
+import { withErrorBoundary, withSuspense, useStorage } from '@extension/shared';
+import { Threshold, useWatchListStorage, WatchlistItem, useThresholdStorage, settingStorage } from '@extension/storage';
 import React, { useState, useEffect } from 'react';
 import {} from '@extension/shared';
 import {
@@ -55,13 +55,14 @@ const SidePanel = () => {
   let [threshold, setThreshold] = useState<Threshold>({ active: false, id: '', lower: 0, upper: 0 });
   const [expandedItem, setExpandedItem] = useState<string | null>(null); // Track expanded item by its unique ID
   const [alertMessage, setAlertMessage] = useState<string | null>(null); // To display alerts
-  const [changeRateDetail, setChangeRateDetail] = useState<boolean>(true);
+
+  const setting = useStorage(settingStorage);
+
   useEffect(() => {
     const fetchWatchlist = async () => {
       let list = await useWatchListStorage.getWatchlist();
       setWatchlist(list);
     };
-    fetchWatchlist();
 
     const unsubscribeWatchList = useWatchListStorage.subscribe(() => {
       setWatchlist(useWatchListStorage.getSnapshot() || []);
@@ -114,7 +115,7 @@ const SidePanel = () => {
   };
 
   const toggleChangeRateDetail = () => {
-    setChangeRateDetail(!changeRateDetail);
+    settingStorage.toggleChangeRate();
   };
 
   // const toggleActiveThreshold = (url: string, name: string, isPriority: boolean) => {
@@ -285,7 +286,7 @@ const SidePanel = () => {
                     </Box>
                   </Box>
                 </Box>
-                {item.isPriority === false && changeRateDetail && (
+                {item.isPriority === false && setting.changeRate && (
                   <Box>
                     <ChangeRateCard
                       changeRate24h={item.changeRate24h}

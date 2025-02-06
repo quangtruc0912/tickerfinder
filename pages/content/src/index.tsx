@@ -1,11 +1,12 @@
 import { toggleTheme } from '@src/toggleTheme';
 import { TICKER_PROCESSED, HIGHTLIGHTED_COLOR, injectReact, ArrowDirection } from '@extension/shared';
-import { PRIORITYCHAINLIST } from '@extension/shared';
+import { PRIORITYCHAINLIST, useStorage } from '@extension/shared';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { createRoot } from 'react-dom/client';
 import _ from 'lodash';
 import TickerPopup from '@src/TickerPopup';
+import { settingStorage } from '@extension/storage';
 
 const injectTicker = async () => {
   const regexStr = /\$(\w)+/g;
@@ -25,14 +26,15 @@ const injectTicker = async () => {
 
   var filteredTickers = tickerNodes.filter(el => el.node.textContent && el.node.textContent.match(regexStr));
 
-  filteredTickers.forEach(({ node, type }) => {
+  filteredTickers.forEach(async ({ node, type }) => {
     if (node.dataset[TICKER_PROCESSED]) return;
 
     //FIND BETTER SOLUTION FOR DIR/ LTR JUST TEMPORARY
     if (type === 'a' && node.dir == 'ltr') {
+      const setting = await settingStorage.getSetting();
       node.dataset[TICKER_PROCESSED] = '1';
       node.dataset.popupText = node?.textContent ?? undefined;
-      node.style.backgroundColor = HIGHTLIGHTED_COLOR;
+      node.style.backgroundColor = !setting.tickerBackgroundColor ? HIGHTLIGHTED_COLOR : setting.tickerBackgroundColor;
     }
   });
 };

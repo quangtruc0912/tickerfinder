@@ -63,17 +63,13 @@ const Popup = () => {
         </button> */}
       <div className="flex justify-center gap-2 mt-4">
         <ToggleButton>Toggle theme</ToggleButton>
+        <OptionsButton>Settings</OptionsButton>
         <SidepanelButton>Side panel / CTR + B</SidepanelButton>
       </div>
       {/* </header> */}
       <div className="flex justify-center gap-4 p-4">
         <SocialMediaButton href="https://x.com/crXptoExt" icon="twitter" label="Twitter/X" isLight={isLight} />
-        {/* <SocialMediaButton
-          href="https://github.com/YourGitHubHandle"
-          icon="github"
-          label="GitHub"
-          isLight={isLight}
-        /> */}
+        <SocialMediaButton href="https://discord.gg/eJq77fBKY8" icon="discord" label="Discord" isLight={isLight} />
       </div>
     </div>
   );
@@ -90,6 +86,25 @@ const ToggleButton = (props: ComponentPropsWithoutRef<'button'>) => {
         (theme === 'light' ? 'bg-white text-black shadow-black' : 'bg-black text-white')
       }
       onClick={exampleThemeStorage.toggle}>
+      {props.children}
+    </button>
+  );
+};
+const OptionsButton = (props: ComponentPropsWithoutRef<'button'>) => {
+  const theme = useStorage(exampleThemeStorage);
+  return (
+    <button
+      className={
+        props.className +
+        ' ' +
+        'font-bold mt-4 py-1 px-4 rounded shadow hover:scale-105 ' +
+        (theme === 'light' ? 'bg-white text-black shadow-black' : 'bg-black text-white')
+      }
+      onClick={async (event: any) => {
+        // const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        // const tab = tabs[0];
+        chrome.runtime.sendMessage({ type: 'open_options' });
+      }}>
       {props.children}
     </button>
   );
