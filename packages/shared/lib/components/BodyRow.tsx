@@ -1,4 +1,4 @@
-import { Fade, TableCell, TableRow, Box, Avatar, IconButton } from '@mui/material';
+import { Fade, TableCell, TableRow, Box, Avatar, IconButton, Tooltip } from '@mui/material';
 import { SwitchTransition, CSSTransition } from 'react-transition-group';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
@@ -7,10 +7,10 @@ import { styled } from '@mui/material/styles';
 import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid2';
 import { useTheme } from '@mui/material/styles';
-import { useWatchListStorage } from '@extension/storage';
+import { useWatchListStorage, coinGeckoStorage } from '@extension/storage';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { generateUUID } from '../utils/index';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
@@ -45,6 +45,7 @@ interface BodyRowProps {
 
 export default function BodyPairRow({ row }: BodyRowProps) {
   const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [coinGeckoAddresses, setCoinGeckoAddresses] = useState<Set<string>>(new Set());
   const theme = useTheme();
   const USD = Number(row.priceUsd);
   const price = numberFormat(USD);
@@ -54,6 +55,8 @@ export default function BodyPairRow({ row }: BodyRowProps) {
   const percent_change24h = Number(row.priceChange.h24).toFixed(2);
   const uuid = generateUUID();
 
+  const CoinGeckoIcon = 'content/coingecko.svg'; // Replace with actual path
+  const DexscreenerIcon = 'content/dexscreener.svg';
   const marketCap = numberFormat(row.marketCap, {
     notation: 'compact',
     compactDisplay: 'short',
@@ -99,7 +102,11 @@ export default function BodyPairRow({ row }: BodyRowProps) {
       const isAdded = watchlist.some(listItem => listItem.url === row.url);
       setIsInWatchlist(isAdded);
     };
-
+    const fetchContractAddresses = async () => {
+      const storedContracts = await coinGeckoStorage.getContractAddress();
+      setCoinGeckoAddresses(storedContracts);
+    };
+    fetchContractAddresses();
     checkWatchlist();
   }, [row]);
 
@@ -144,27 +151,58 @@ export default function BodyPairRow({ row }: BodyRowProps) {
       }}
       onClick={() => window.open(`https://dexscreener.com/${row.chainId}/${row.pairAddress}`, '_blank')}>
       <TableCell>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          {/* First Row - Star Icon */}
           <IconButton
             onClick={event => {
-              event.stopPropagation(); // Prevent the click from bubbling to the TableRow
+              event.stopPropagation();
               handleToggle();
             }}
             color={isInWatchlist ? 'warning' : 'default'}>
             {isInWatchlist ? <StarIcon /> : <StarBorderIcon />}
           </IconButton>
-          <IconButton
-            style={{
-              backgroundColor: 'white', // Optional: To make the button stand out
-              padding: 4,
-            }}
-            size="small"
-            onClick={event => {
-              // event.stopPropagation();
-              // handleRedirect(item);
-            }}>
-            <OpenInNewIcon fontSize="small" sx={{ fontSize: 10 }} />
-          </IconButton>
+
+          {/* Second Row - OpenInNewIcon + Conditional CoinGecko Icon */}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Tooltip title="Contract Address verified on DexScreener. Redirect?" arrow>
+              <IconButton
+                style={{ backgroundColor: 'white', padding: 2 }}
+                size="small"
+                onClick={event => {
+                  // event.stopPropagation();
+                  // handleRedirect(item);
+                }}>
+                <Avatar
+                  src={chrome.runtime.getURL(DexscreenerIcon)}
+                  sx={{
+                    width: 20,
+                    height: 20,
+                  }}
+                />
+              </IconButton>
+            </Tooltip>
+            {/* Show CoinGecko Icon only if contractAddress is in storage */}
+            {coinGeckoAddresses.has(row.baseToken.address.toLowerCase()) && (
+              <Tooltip title="Contract Address verified on CoinGecko. Redirect?" arrow>
+                <IconButton
+                  style={{ backgroundColor: 'white', padding: 2 }}
+                  size="small"
+                  onClick={event => {
+                    event.stopPropagation();
+                    window.open(`https://www.coingecko.com/en/coins/` + row.baseToken.address, '_blank');
+                  }}>
+                  <Avatar
+                    src={chrome.runtime.getURL(CoinGeckoIcon)}
+                    sx={{
+                      width: 20,
+                      height: 20,
+                    }}
+                  />
+                </IconButton>
+              </Tooltip>
+            )}
+          </div>
         </div>
       </TableCell>
       <TableCell

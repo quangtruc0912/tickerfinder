@@ -62,8 +62,7 @@ const Popup = () => {
           Click to inject Content Script
         </button> */}
       <div className="flex justify-center gap-2 mt-4">
-        <ToggleButton>Toggle theme</ToggleButton>
-        <OptionsButton>Settings</OptionsButton>
+        <OptionsButton>Settings/ChangeLog</OptionsButton>
         <SidepanelButton>Side panel / CTR + B</SidepanelButton>
       </div>
       {/* </header> */}

@@ -1,9 +1,16 @@
 import 'webextension-polyfill';
-import { WatchlistItem, useWatchListStorage, Threshold, useThresholdStorage } from '@extension/storage';
+import {
+  WatchlistItem,
+  useWatchListStorage,
+  Threshold,
+  useThresholdStorage,
+  coinGeckoStorage,
+} from '@extension/storage';
 let isSidePanelOpen = false; // Track whether the side panel is open
 const INIT = ['BTC', 'SOL', 'ETH'];
 
 const INTERVAL = 5000;
+const COINGECKOINTERVAL = 3600000; // 1 HOUR
 let watchlist: WatchlistItem[] = [];
 const notificationUrls: Record<string, string> = {};
 
@@ -92,7 +99,7 @@ const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
 
   const watchListDataList: WatchlistItem[] = results.map((item: any) => ({
     guidID: '',
-    address: item.baseToken.address,
+    address: item?.baseToken?.address,
     chainId: item.chainId,
     dexId: item.dexId,
     changeRate24h: item.priceChange.h24 || 0,
@@ -398,4 +405,15 @@ function highlightSelection() {
   range.insertNode(span);
 }
 
+const fetchCoinGeckoData = async () => {
+  const url = `https://api.coingecko.com//api/v3/coins/list?include_platform=true`;
+  const response = await fetch(url);
+  let data = await response.json();
+  const contractAddresses = data.flatMap((token: any) => Object.values(token.platforms));
+  coinGeckoStorage.setContractAddress(contractAddresses);
+};
+
 setInterval(fetchData, INTERVAL);
+
+fetchCoinGeckoData();
+setInterval(fetchCoinGeckoData, COINGECKOINTERVAL);

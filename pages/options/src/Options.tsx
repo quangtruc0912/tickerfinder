@@ -111,9 +111,17 @@ const Options = () => {
           justifyContent: 'center',
         }}>
         {/* Placeholder for any other settings */}
-        {/* <Typography variant="h5" sx={{ color: isLight ? "black" : "white" }}>
-          Additional Settings
-        </Typography> */}
+        <Box
+          sx={{
+            width: '50%',
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          <ChangeLog />
+        </Box>
       </Box>
     </Container>
   );
@@ -132,6 +140,63 @@ const ToggleButton = (props: ComponentPropsWithoutRef<'button'>) => {
       onClick={exampleThemeStorage.toggle}>
       {props.children}
     </button>
+  );
+};
+
+const ChangeLog = () => {
+  const theme = useStorage(exampleThemeStorage);
+  const isLight = theme === 'light';
+
+  const logs = [
+    {
+      version: '0.1.4',
+      date: 'Feb 08, 2025',
+      changes: ['🚀 Display contract verified by Coingecko.', '🎨 Add change log on options.', '🔄 Update dex icon'],
+      devComments:
+        'Dexscreener query might have alots of token that have the same ticker, and sometime scam token. Add another dex that can verify contract address could reduce amount of scam token.',
+    },
+  ];
+
+  return (
+    <Box
+      sx={{
+        width: '100%',
+        maxWidth: '600px',
+        backgroundColor: isLight ? '#fff' : '#333',
+        padding: '1.5rem',
+        borderRadius: '8px',
+        boxShadow: 3,
+        marginTop: '1rem',
+      }}>
+      <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: '1rem', color: isLight ? 'black' : 'white' }}>
+        Change Log
+      </Typography>
+      <Divider sx={{ marginBottom: '1rem' }} />
+
+      {logs.map((log, index) => (
+        <Box
+          key={index}
+          sx={{
+            marginBottom: '1.5rem',
+            paddingBottom: '1rem',
+            borderBottom: index !== logs.length - 1 ? '1px solid gray' : 'none',
+          }}>
+          <Typography variant="h6" sx={{ color: isLight ? 'black' : 'white' }}>
+            {log.version} - {log.date}
+          </Typography>
+          <ul style={{ paddingLeft: '1rem', color: isLight ? 'black' : 'white' }}>
+            {log.changes.map((change, i) => (
+              <li key={i}>{change}</li>
+            ))}
+          </ul>
+          <Typography
+            variant="body2"
+            sx={{ marginTop: '0.5rem', fontStyle: 'italic', color: isLight ? 'gray' : 'lightgray' }}>
+            📝 Dev Comments: {log.devComments}
+          </Typography>
+        </Box>
+      ))}
+    </Box>
   );
 };
 

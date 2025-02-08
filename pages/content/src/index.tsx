@@ -105,8 +105,6 @@ const injectIndicating = async () => {
 
   var uniqueTickers = uniqueTickersElements.concat(uniqueTickersSpan);
 
-  console.log(filteredSpan);
-
   uniqueTickers.forEach((ticker: string) => {
     chrome.runtime.sendMessage({ type: 'FETCH_KUCOIN', ticker }, response => {
       if (response.data) {
