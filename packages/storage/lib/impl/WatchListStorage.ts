@@ -65,7 +65,9 @@ export const useWatchListStorage: IWatchListStorage = {
   },
   removePriorityFromWatchlist: async name => {
     const currentList = await watchListStorage.get();
-    const updatedList = currentList.filter(item => item.name !== name && !item.isPriority);
+    const updatedList = currentList.filter(
+      item => (item.name !== name && item.isPriority === true) || !item.isPriority,
+    );
     await watchListStorage.set(updatedList);
   },
   getWatchlist: async () => {

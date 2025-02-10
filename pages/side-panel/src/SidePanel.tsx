@@ -17,12 +17,17 @@ import {
   Collapse,
   TextField,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import ChangeRateCard from './ChangeRateCard';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import ReactDOM from 'react-dom';
 
 function formatCustomPrice(price: number): string {
   if (price === undefined || price === 0) {
@@ -55,6 +60,7 @@ const SidePanel = () => {
   let [threshold, setThreshold] = useState<Threshold>({ active: false, id: '', lower: 0, upper: 0 });
   const [expandedItem, setExpandedItem] = useState<string | null>(null); // Track expanded item by its unique ID
   const [alertMessage, setAlertMessage] = useState<string | null>(null); // To display alerts
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const setting = useStorage(settingStorage);
 
@@ -106,27 +112,11 @@ const SidePanel = () => {
     }
     setThreshold(threshold);
     setAlertMessage(null);
-    // chrome.runtime.sendMessage({ type: 'GET_THRESHOLD', id }, response => {
-    //   if (response) {
-    //     setThreshold(response);
-    //     setAlertMessage(null);
-    //   }
-    // });
   };
 
   const toggleChangeRateDetail = () => {
     settingStorage.toggleChangeRate();
   };
-
-  // const toggleActiveThreshold = (url: string, name: string, isPriority: boolean) => {
-  //   setWatchlist(prev =>
-  //     prev.map(item =>
-  //       (item.url === url && !isPriority) || (item.name === name && isPriority)
-  //         ? { ...item, threshold: { ...item.thresholds, active: !item.thresholds.active } }
-  //         : item,
-  //     ),
-  //   );
-  // };
 
   const toggleNotification = () => {
     // Only allow toggling if there are no active alerts
@@ -175,304 +165,332 @@ const SidePanel = () => {
     }
   };
 
-  return (
-    <Drawer
-      anchor="left"
-      open={true}
-      variant="persistent"
-      sx={{
-        width: 400,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: '400px', // Fixed width for Uniswap-like design
-          maxWidth: '100vw',
-          height: '100vh', // Full height
-          boxSizing: 'border-box',
-          backgroundColor: 'background.default',
-          color: 'text.primary',
-        },
-      }}>
-      <Box p={2} display="flex" flexDirection="column" height="100%">
-        <Button onClick={toggleChangeRateDetail}>Display Change Rate Detail</Button>
-        <Divider />
-        <List>
-          {watchlist?.map(item => (
-            <React.Fragment key={item.guidID}>
-              <ListItem
-                alignItems="center"
-                onClick={() => toggleExpandItem(item.guidID)} // Expand/Collapse on click
-                sx={{ display: 'block' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '-webkit-fill-available' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <ListItemAvatar style={{ position: 'relative' }}>
-                      <Avatar
-                        src={item.isPriority ? chrome.runtime.getURL(item?.imageUrl) : item?.imageUrl}
-                        alt={item.symbol}
-                      />
-                      <IconButton
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          right: 0,
-                          backgroundColor: 'white', // Optional: To make the button stand out
-                          padding: 4,
-                        }}
-                        size="small"
-                        onClick={event => {
-                          event.stopPropagation();
-                          handleRedirect(item);
-                        }}>
-                        <OpenInNewIcon fontSize="small" sx={{ fontSize: 10 }} />
-                      </IconButton>
-                    </ListItemAvatar>
-                    <Box sx={{ marginLeft: 1 }}>
-                      <ListItemText
-                        primary={
-                          <Typography variant="body1" fontWeight="500">
-                            {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
-                          </Typography>
-                        }
-                        secondary={
-                          <Typography variant="body2" color="gray">
-                            {item.symbol}
-                          </Typography>
-                        }
-                      />
-                    </Box>
-                  </Box>
+  const toggleModal = async () => {
+    const notificationOptions = {
+      type: 'basic',
+      iconUrl: chrome.runtime.getURL('icon-34.png'),
+      title: 'Injecting content script error',
+      message: 'You cannot inject script here!',
+    } as const;
+    const [tab] = await chrome.tabs.query({ currentWindow: true, active: true });
+    await chrome.scripting
+      .executeScript({
+        target: { tabId: tab.id! },
+        files: ['/content-runtime/index.iife.js'],
+      })
+      .catch(err => {
+        // Handling errors related to other paths
+        if (err.message.includes('Cannot access a chrome:// URL')) {
+          chrome.notifications.create('inject-error', notificationOptions);
+        }
+      });
+  };
 
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5, // Space between elements
-                    }}>
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography variant="body2" fontWeight="500">
-                        ${formatCustomPrice(Number(item.price))}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        color={Number(item.changeRate24h) > 0 ? 'success.main' : 'error.main'}>
-                        {Number(item.changeRate24h) > 0 ? '+' : ''}
-                        {Number(item.changeRate24h).toFixed(2)}%
-                      </Typography>
+  return (
+    <>
+      <Drawer
+        anchor="left"
+        open={true}
+        variant="persistent"
+        sx={{
+          width: 400,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: '400px', // Fixed width for Uniswap-like design
+            maxWidth: '100vw',
+            height: '100vh', // Full height
+            boxSizing: 'border-box',
+            backgroundColor: 'background.default',
+            color: 'text.primary',
+          },
+        }}>
+        <Box p={2} display="flex" flexDirection="column" height="100%">
+          <Button onClick={toggleChangeRateDetail}>Display Change Rate Detail</Button>
+          <Divider />
+          <List>
+            {watchlist?.map(item => (
+              <React.Fragment key={item.guidID}>
+                <ListItem
+                  alignItems="center"
+                  onClick={() => toggleExpandItem(item.guidID)} // Expand/Collapse on click
+                  sx={{ display: 'block' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '-webkit-fill-available' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <ListItemAvatar style={{ position: 'relative' }}>
+                        <Avatar
+                          src={item.isPriority ? chrome.runtime.getURL(item?.imageUrl) : item?.imageUrl}
+                          alt={item.symbol}
+                        />
+                        <IconButton
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            backgroundColor: 'white', // Optional: To make the button stand out
+                            padding: 4,
+                          }}
+                          size="small"
+                          onClick={event => {
+                            event.stopPropagation();
+                            handleRedirect(item);
+                          }}>
+                          <OpenInNewIcon fontSize="small" sx={{ fontSize: 10 }} />
+                        </IconButton>
+                      </ListItemAvatar>
+                      <Box sx={{ marginLeft: 1 }}>
+                        <ListItemText
+                          primary={
+                            <Typography variant="body1" fontWeight="500">
+                              {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
+                            </Typography>
+                          }
+                          secondary={
+                            <Typography variant="body2" color="gray">
+                              {item.symbol}
+                            </Typography>
+                          }
+                        />
+                      </Box>
                     </Box>
+
                     <Box
                       sx={{
-                        height: '72px',
-                        flex: 1,
                         display: 'flex',
-                        flexDirection: 'column', // Stack the children vertically
-                        alignItems: 'center', // Center align horizontally
+                        alignItems: 'center',
+                        gap: 1.5, // Space between elements
                       }}>
-                      <IconButton
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="body2" fontWeight="500">
+                          ${formatCustomPrice(Number(item.price))}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color={Number(item.changeRate24h) > 0 ? 'success.main' : 'error.main'}>
+                          {Number(item.changeRate24h) > 0 ? '+' : ''}
+                          {Number(item.changeRate24h).toFixed(2)}%
+                        </Typography>
+                      </Box>
+                      <Box
                         sx={{
-                          scale: 0.9,
-                        }}
-                        edge="end"
-                        onClick={() => removeCoin(item.url, item.name, item.isPriority)}>
-                        <DeleteIcon />
-                      </IconButton>
-                      <IconButton
-                        edge="end"
-                        color={thresholdList.find(i => i.id === item.guidID)?.active ? 'success' : 'error'}>
-                        {thresholdList.find(i => i.id === item.guidID)?.active ? (
-                          <NotificationsActiveIcon />
-                        ) : (
-                          <NotificationsOffIcon />
-                        )}
-                      </IconButton>
-                    </Box>
-                  </Box>
-                </Box>
-                {item.isPriority === false && setting.changeRate && (
-                  <Box>
-                    <ChangeRateCard
-                      changeRate24h={item.changeRate24h}
-                      changeRate5m={item.changeRate5m}
-                      changeRate1h={item.changeRate1h}
-                      changeRate6h={item.changeRate6h}
-                    />
-                  </Box>
-                )}
-              </ListItem>
-              <Collapse in={expandedItem === item.guidID} timeout="auto" unmountOnExit>
-                <Box
-                  sx={{
-                    padding: 2,
-                    borderRadius: 1,
-                    margin: 1,
-                  }}>
-                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    Notification Threshold for {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
-                  </Typography>
-
-                  {/* First Row: Limits and Price */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginBottom: 2 }}>
-                    {/* Lower Limit Input */}
-                    <TextField
-                      disabled={threshold.active}
-                      label="Lower Limit"
-                      type="text"
-                      fullWidth
-                      value={threshold?.lower?.toString() || ''}
-                      size="small"
-                      sx={{
-                        flex: 1,
-                        '& .MuiInputBase-input': {
-                          textAlign: 'left', // Right-align the text in the input field
-                        },
-                        '& .MuiInputLabel-root': {
-                          color: '#007BFF', // Default label color
-                        },
-                        '& .MuiOutlinedInput-root': {
-                          '& fieldset': {
-                            borderColor: '#007BFF', // Default border color
-                          },
-                        },
-                        '& .MuiInputLabel-root.Mui-disabled': {
-                          color: 'grey.400', // Label color when disabled
-                        },
-                        '& .MuiInputBase-input.Mui-disabled': {
-                          color: 'grey.500', // Set text color for disabled state
-                        },
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'grey.300', // Optional: Customize border color for disabled state
-                        },
-                      }}
-                      onChange={event => {
-                        const newValue = event.target.value;
-                        updateLowerThreshold(newValue, item); // Update the lower threshold
-                        checkForAlerts(item, newValue, 'lower'); // Trigger alert check immediately
-                      }}
-                    />
-
-                    {/* Upper Limit Input */}
-                    <TextField
-                      disabled={threshold.active}
-                      label="Upper Limit"
-                      type="text"
-                      value={threshold?.upper?.toString() || ''}
-                      fullWidth
-                      size="small"
-                      sx={{
-                        flex: 1,
-                        '& .MuiInputBase-input': {
-                          textAlign: 'right', // Right-align the text in the input field
-                        },
-                        '& .MuiInputLabel-root': {
-                          color: '#007BFF', // Default label color
-                        },
-                        '& .MuiOutlinedInput-root': {
-                          '& fieldset': {
-                            borderColor: '#007BFF', // Default border color
-                          },
-                        },
-                        '& .MuiInputLabel-root.Mui-disabled': {
-                          color: 'grey.400', // Label color when disabled
-                        },
-                      }}
-                      onChange={event => {
-                        const newValue = event.target.value;
-                        updateUpperThreshold(newValue, item); // Update the upper threshold
-                        checkForAlerts(item, newValue, 'upper'); // Trigger alert check immediately
-                      }}
-                    />
-                  </Box>
-
-                  {/* Second Row: Percentage Buttons */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    {/* Lower Limit Buttons */}
-                    <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      {[10, 20, 50].map(percent => (
-                        <Button
-                          disabled={threshold.active}
-                          key={percent}
-                          variant="outlined"
-                          size="small"
-                          onClick={() => {
-                            if (Number(item.price) < 0.00001) {
-                              const adjustedPrice = (Number(item.price) * (1 - percent / 100)).toFixed(18); // Ensure 18 decimal precision
-                              updateLowerThreshold(adjustedPrice, item); // Pass as a string to avoid scientific notation
-                            } else {
-                              const adjustedPrice = (Number(item.price) * (1 - percent / 100)).toFixed(4); // Ensure 18 decimal precision
-                              updateLowerThreshold(adjustedPrice.toString(), item); // Pass as a string to avoid scientific notation
-                            }
-                          }}>
-                          -{percent}%
-                        </Button>
-                      ))}
-                    </Box>
-
-                    {/* Spacer */}
-
-                    <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          textAlign: 'center',
-                          minWidth: 80, // Adjust width as needed
-                          padding: 1,
-                          border: '1px solid #ccc',
-                          borderRadius: 1,
-                          fontWeight: 'bold',
-                          marginBottom: '10px',
-                          width: '-webkit-fill-available',
+                          height: '72px',
+                          flex: 1,
+                          display: 'flex',
+                          flexDirection: 'column', // Stack the children vertically
+                          alignItems: 'center', // Center align horizontally
                         }}>
-                        ${formatCustomPrice(Number(item.price))}
-                      </Typography>
-                      <Button
-                        variant="contained"
-                        color={threshold?.active ? 'success' : 'error'}
-                        startIcon={threshold?.active ? <NotificationsActiveIcon /> : <NotificationsOffIcon />}
-                        onClick={() => toggleNotification()} // Function to toggle active state
-                        sx={{
-                          '& .MuiButton-startIcon': { marginRight: '0px', marginLeft: '0px' },
-                          textTransform: 'none', // Keep the text case as is
-                          padding: '8px 16px',
-                          width: '-webkit-fill-available',
-                        }}></Button>
-                    </Box>
-
-                    {/* Upper Limit Buttons */}
-                    <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                      {[10, 20, 50].map(percent => (
-                        <Button
-                          disabled={threshold.active}
-                          key={percent}
-                          variant="outlined"
-                          size="small"
-                          onClick={() => {
-                            if (Number(item.price) < 0.00001) {
-                              const adjustedPrice = (Number(item.price) * (1 + percent / 100)).toFixed(18); // Ensure 18 decimal precision
-                              updateUpperThreshold(adjustedPrice, item); // Pass as a string to avoid scientific notation
-                            } else {
-                              const adjustedPrice = (Number(item.price) * (1 + percent / 100)).toFixed(4); // Ensure 18 decimal precision
-                              updateUpperThreshold(adjustedPrice.toString(), item); // Pass as a string to avoid scientific notation
-                            }
-                          }}>
-                          +{percent}%
-                        </Button>
-                      ))}
+                        <IconButton
+                          sx={{
+                            scale: 0.9,
+                          }}
+                          edge="end"
+                          onClick={() => removeCoin(item.url, item.name, item.isPriority)}>
+                          <DeleteIcon />
+                        </IconButton>
+                        <IconButton
+                          edge="end"
+                          color={thresholdList.find(i => i.id === item.guidID)?.active ? 'success' : 'error'}>
+                          {thresholdList.find(i => i.id === item.guidID)?.active ? (
+                            <NotificationsActiveIcon />
+                          ) : (
+                            <NotificationsOffIcon />
+                          )}
+                        </IconButton>
+                      </Box>
                     </Box>
                   </Box>
-
-                  {alertMessage && (
-                    <Box p={1} mb={2} border="1px solid" borderColor="error.main" borderRadius={2}>
-                      <Typography variant="body2" color="error">
-                        {alertMessage}
-                      </Typography>
+                  {item.isPriority === false && setting.changeRate && (
+                    <Box>
+                      <ChangeRateCard
+                        changeRate24h={item.changeRate24h}
+                        changeRate5m={item.changeRate5m}
+                        changeRate1h={item.changeRate1h}
+                        changeRate6h={item.changeRate6h}
+                      />
                     </Box>
                   )}
-                </Box>
-              </Collapse>
-              <Divider />
-            </React.Fragment>
-          ))}
-        </List>
-      </Box>
-    </Drawer>
+                </ListItem>
+                <Collapse in={expandedItem === item.guidID} timeout="auto" unmountOnExit>
+                  <Box
+                    sx={{
+                      padding: 2,
+                      borderRadius: 1,
+                      margin: 1,
+                    }}>
+                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                      Notification Threshold for {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
+                    </Typography>
+
+                    {/* First Row: Limits and Price */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginBottom: 2 }}>
+                      {/* Lower Limit Input */}
+                      <TextField
+                        disabled={threshold.active}
+                        label="Lower Limit"
+                        type="text"
+                        fullWidth
+                        value={threshold?.lower?.toString() || ''}
+                        size="small"
+                        sx={{
+                          flex: 1,
+                          '& .MuiInputBase-input': {
+                            textAlign: 'left', // Right-align the text in the input field
+                          },
+                          '& .MuiInputLabel-root': {
+                            color: '#007BFF', // Default label color
+                          },
+                          '& .MuiOutlinedInput-root': {
+                            '& fieldset': {
+                              borderColor: '#007BFF', // Default border color
+                            },
+                          },
+                          '& .MuiInputLabel-root.Mui-disabled': {
+                            color: 'grey.400', // Label color when disabled
+                          },
+                          '& .MuiInputBase-input.Mui-disabled': {
+                            color: 'grey.500', // Set text color for disabled state
+                          },
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'grey.300', // Optional: Customize border color for disabled state
+                          },
+                        }}
+                        onChange={event => {
+                          const newValue = event.target.value;
+                          updateLowerThreshold(newValue, item); // Update the lower threshold
+                          checkForAlerts(item, newValue, 'lower'); // Trigger alert check immediately
+                        }}
+                      />
+
+                      {/* Upper Limit Input */}
+                      <TextField
+                        disabled={threshold.active}
+                        label="Upper Limit"
+                        type="text"
+                        value={threshold?.upper?.toString() || ''}
+                        fullWidth
+                        size="small"
+                        sx={{
+                          flex: 1,
+                          '& .MuiInputBase-input': {
+                            textAlign: 'right', // Right-align the text in the input field
+                          },
+                          '& .MuiInputLabel-root': {
+                            color: '#007BFF', // Default label color
+                          },
+                          '& .MuiOutlinedInput-root': {
+                            '& fieldset': {
+                              borderColor: '#007BFF', // Default border color
+                            },
+                          },
+                          '& .MuiInputLabel-root.Mui-disabled': {
+                            color: 'grey.400', // Label color when disabled
+                          },
+                        }}
+                        onChange={event => {
+                          const newValue = event.target.value;
+                          updateUpperThreshold(newValue, item); // Update the upper threshold
+                          checkForAlerts(item, newValue, 'upper'); // Trigger alert check immediately
+                        }}
+                      />
+                    </Box>
+
+                    {/* Second Row: Percentage Buttons */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      {/* Lower Limit Buttons */}
+                      <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        {[10, 20, 50].map(percent => (
+                          <Button
+                            disabled={threshold.active}
+                            key={percent}
+                            variant="outlined"
+                            size="small"
+                            onClick={() => {
+                              if (Number(item.price) < 0.00001) {
+                                const adjustedPrice = (Number(item.price) * (1 - percent / 100)).toFixed(18); // Ensure 18 decimal precision
+                                updateLowerThreshold(adjustedPrice, item); // Pass as a string to avoid scientific notation
+                              } else {
+                                const adjustedPrice = (Number(item.price) * (1 - percent / 100)).toFixed(4); // Ensure 18 decimal precision
+                                updateLowerThreshold(adjustedPrice.toString(), item); // Pass as a string to avoid scientific notation
+                              }
+                            }}>
+                            -{percent}%
+                          </Button>
+                        ))}
+                      </Box>
+
+                      {/* Spacer */}
+
+                      <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            textAlign: 'center',
+                            minWidth: 80, // Adjust width as needed
+                            padding: 1,
+                            border: '1px solid #ccc',
+                            borderRadius: 1,
+                            fontWeight: 'bold',
+                            marginBottom: '10px',
+                            width: '-webkit-fill-available',
+                          }}>
+                          ${formatCustomPrice(Number(item.price))}
+                        </Typography>
+                        <Button
+                          variant="contained"
+                          color={threshold?.active ? 'success' : 'error'}
+                          startIcon={threshold?.active ? <NotificationsActiveIcon /> : <NotificationsOffIcon />}
+                          onClick={() => toggleNotification()} // Function to toggle active state
+                          sx={{
+                            '& .MuiButton-startIcon': { marginRight: '0px', marginLeft: '0px' },
+                            textTransform: 'none', // Keep the text case as is
+                            padding: '8px 16px',
+                            width: '-webkit-fill-available',
+                          }}></Button>
+                      </Box>
+
+                      {/* Upper Limit Buttons */}
+                      <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {[10, 20, 50].map(percent => (
+                          <Button
+                            disabled={threshold.active}
+                            key={percent}
+                            variant="outlined"
+                            size="small"
+                            onClick={() => {
+                              if (Number(item.price) < 0.00001) {
+                                const adjustedPrice = (Number(item.price) * (1 + percent / 100)).toFixed(18); // Ensure 18 decimal precision
+                                updateUpperThreshold(adjustedPrice, item); // Pass as a string to avoid scientific notation
+                              } else {
+                                const adjustedPrice = (Number(item.price) * (1 + percent / 100)).toFixed(4); // Ensure 18 decimal precision
+                                updateUpperThreshold(adjustedPrice.toString(), item); // Pass as a string to avoid scientific notation
+                              }
+                            }}>
+                            +{percent}%
+                          </Button>
+                        ))}
+                      </Box>
+                    </Box>
+
+                    {alertMessage && (
+                      <Box p={1} mb={2} border="1px solid" borderColor="error.main" borderRadius={2}>
+                        <Typography variant="body2" color="error">
+                          {alertMessage}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Collapse>
+                <Divider />
+              </React.Fragment>
+            ))}
+          </List>
+          <Box mt="auto" p={2} textAlign="center" borderTop="1px solid #ccc">
+            <Button variant="contained" onClick={toggleModal}>
+              Open Popup
+            </Button>
+          </Box>
+        </Box>
+      </Drawer>
+    </>
   );
 };
 

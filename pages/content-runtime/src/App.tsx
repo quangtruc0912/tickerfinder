@@ -1,9 +1,21 @@
-import { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import Modal from '@src/Modal';
 
-export default function App() {
+const App: React.FC = () => {
+  const [isModalOpen, setModalOpen] = useState(false);
+
   useEffect(() => {
-    console.log('runtime content view loaded');
+    const handleToggle = () => setModalOpen(prev => !prev);
+    document.addEventListener('toggle-modal', handleToggle);
+
+    return () => document.removeEventListener('toggle-modal', handleToggle);
   }, []);
 
-  return <div className="runtime-content-view-text">runtime content view</div>;
-}
+  return (
+    <div>
+      <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} />
+    </div>
+  );
+};
+
+export default App;
