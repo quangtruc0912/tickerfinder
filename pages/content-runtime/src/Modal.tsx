@@ -1,12 +1,26 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Modal, Box, TextField, Button, Typography } from '@mui/material';
+import PairTable from '@extension/shared/lib/components/PairTable';
 
-interface ModalProps {
+interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
+const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [ticker, setTicker] = useState('');
+  const [modalWidth, setModalWidth] = useState('900px');
+
+  // Debounce logic: Update `ticker` 1s after user stops typing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setTicker(searchTerm.trim()); // Trim whitespace
+    }, 1000);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -14,68 +28,59 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
-  const styles = {
-    overlay: {
-      position: 'fixed' as 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 9999,
-    },
-    modal: {
-      backgroundColor: '#222',
-      color: '#fff',
-      padding: '20px',
-      borderRadius: '8px',
-      boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-      width: '400px', // Ensure modal width
-      maxWidth: '90%',
-      textAlign: 'center' as 'center',
-      boxSizing: 'border-box' as 'border-box', // Prevent layout shifts
-    },
-    input: {
-      width: '100%', // Ensures full width inside modal
-      padding: '10px',
-      marginTop: '10px',
-      borderRadius: '4px',
-      border: '1px solid #444',
-      outline: 'none',
-      fontSize: '16px',
-      backgroundColor: '#333',
-      color: '#fff',
-      boxSizing: 'border-box' as 'border-box', // Ensures padding doesn't shrink input width
-    },
-    button: {
-      marginTop: '15px',
-      padding: '10px',
-      width: '100%',
-      border: 'none',
-      borderRadius: '4px',
-      background: '#007BFF',
-      color: '#fff',
-      cursor: 'pointer',
-      fontSize: '16px',
-    },
-  };
+  // Adjust modal width dynamically based on PairTable content
+  useEffect(() => {
+    if (tableRef.current && ticker) {
+      const newWidth = Math.min(Math.max(tableRef.current.clientWidth + 40, 400), 1200);
+      setModalWidth(`${newWidth}px`);
+    }
+  }, [ticker]); // Recalculate width when `ticker` changes
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={e => e.stopPropagation()}>
-        <h2>Search</h2>
-        <input ref={inputRef} type="text" placeholder="Search..." style={styles.input} />
-        <button onClick={onClose} style={styles.button}>
+    <Modal open={isOpen} onClose={onClose} aria-labelledby="search-modal-title">
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: modalWidth,
+          maxWidth: '90%',
+          bgcolor: 'background.default',
+          color: 'text.primary',
+          boxShadow: 24,
+          p: 4,
+          borderRadius: 2,
+          textAlign: 'center',
+        }}
+        onClick={e => e.stopPropagation()}>
+        <Typography id="search-modal-title" variant="h6" gutterBottom>
+          Search
+        </Typography>
+
+        <TextField
+          inputRef={inputRef}
+          fullWidth
+          variant="outlined"
+          placeholder="Search..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          autoFocus
+        />
+
+        {/* ✅ Always re-render PairTable when ticker changes */}
+        {ticker && (
+          <div ref={tableRef}>
+            <PairTable key={ticker} ticker={ticker} />
+          </div>
+        )}
+
+        <Button onClick={onClose} fullWidth variant="contained" sx={{ mt: 2 }}>
           Close
-        </button>
-      </div>
-    </div>
+        </Button>
+      </Box>
+    </Modal>
   );
 };
 
-export default Modal;
+export default SearchModal;
