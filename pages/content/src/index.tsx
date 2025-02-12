@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client';
 import _ from 'lodash';
 import TickerPopup from '@src/TickerPopup';
 import { settingStorage } from '@extension/storage';
+import SearchModal from '@src/SearchModal';
 
 const injectTicker = async () => {
   const regexStr = /\$(\w)+/g;
@@ -127,8 +128,20 @@ const throttledInjecIndicating = _.throttle(injectIndicating, 5000);
 const setupInjections = async () => {
   const globalContainer = document.createElement('div');
   document.body.appendChild(globalContainer);
-
   injectReact(<TickerPopup />, globalContainer);
+
+  // create another root
+  let root = document.createElement('div');
+  root.id = 'runtime-content-view-root';
+  document.body.append(root);
+
+  const shadowRoot = root.attachShadow({ mode: 'open' });
+
+  const rootIntoShadow = document.createElement('div');
+  rootIntoShadow.id = 'shadow-root';
+  shadowRoot.appendChild(rootIntoShadow);
+
+  injectReact(<SearchModal />, rootIntoShadow);
 
   const observer = new MutationObserver(() => {
     throttledInjecTicker();

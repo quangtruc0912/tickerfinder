@@ -1,21 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import Modal from '@src/Modal';
+import React, { useEffect, useState } from 'react';
 
 const App: React.FC = () => {
-  const [isModalOpen, setModalOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true); // Open modal on first load
 
   useEffect(() => {
-    const handleToggle = () => setModalOpen(prev => !prev);
-    document.addEventListener('toggle-modal', handleToggle);
+    const toggleModal = () => {
+      setIsOpen(prev => !prev);
+    };
 
-    return () => document.removeEventListener('toggle-modal', handleToggle);
+    document.addEventListener('toggle-modal', toggleModal);
+    return () => {
+      document.removeEventListener('toggle-modal', toggleModal);
+    };
   }, []);
 
-  return (
-    <div>
-      <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} />
-    </div>
-  );
+  return '';
 };
 
 export default App;

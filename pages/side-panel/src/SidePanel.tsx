@@ -148,9 +148,9 @@ const SidePanel = () => {
   };
 
   const checkForAlerts = (item: WatchlistItem, price: string | number, threshold: string) => {
-    if (price < item.price && price !== 0 && threshold == 'upper') {
+    if (Number(price) < Number(item.price) && Number(price !== 0) && threshold == 'upper') {
       setAlertMessage(`Alert: Notification Upper threshold cant be lower the actual Price.`);
-    } else if (price > item.price && price !== 0 && threshold == 'lower') {
+    } else if (Number(price) > Number(item.price) && Number(price) !== 0 && threshold == 'lower') {
       setAlertMessage(`Alert: Notification Lower threshold cant be higher the actual Price.`);
     } else {
       setAlertMessage(null); // Clear the alert if no condition is met
@@ -485,7 +485,7 @@ const SidePanel = () => {
           </List>
           <Box mt="auto" p={2} textAlign="center" borderTop="1px solid #ccc">
             <Button variant="contained" onClick={toggleModal}>
-              Open Popup
+              Open Search | Ctrl + /
             </Button>
           </Box>
         </Box>

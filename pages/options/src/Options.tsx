@@ -155,6 +155,18 @@ const ChangeLog = () => {
       devComments:
         'Dexscreener query might have alots of token that have the same ticker, and sometime scam token. Add another dex that can verify contract address could reduce amount of scam token.',
     },
+    {
+      version: '0.1.5',
+      date: 'Feb 13, 2025',
+      changes: [
+        '🔥 Add search ticker modal (can search by CA and Ticker).',
+        '✨ Ctrl + / to OPEN modal search ',
+        '🔄 Open search button on side panel',
+        '🌌 Fix Valid text on Threshold notification',
+      ],
+      devComments:
+        'The Chrome extension automatically detects tickers and displays price/data when users hover over them. However, it only works for elements that already exist on the screen. Adding the ability for users to search for any ticker or contract address would provide more freedom.',
+    },
   ];
 
   return (

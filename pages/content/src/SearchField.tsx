@@ -1,24 +1,32 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Box, TextField, Button, Typography } from '@mui/material';
+import { Modal, Box, TextField, Button, Typography, CircularProgress, InputAdornment } from '@mui/material';
 import PairTable from '@extension/shared/lib/components/PairTable';
 
-interface SearchModalProps {
+interface SearchFieldProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
+const SearchField: React.FC<SearchFieldProps> = ({ isOpen, onClose }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [ticker, setTicker] = useState('');
   const [modalWidth, setModalWidth] = useState('900px');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Debounce logic: Update `ticker` 1s after user stops typing
   useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setTicker('');
+      return;
+    }
+
+    setIsLoading(true); // Start loading
     const handler = setTimeout(() => {
-      setTicker(searchTerm.trim()); // Trim whitespace
+      setTicker(searchTerm.trim());
+      setIsLoading(false); // Stop loading
     }, 1000);
+
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
@@ -28,13 +36,13 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
     }
   }, [isOpen]);
 
-  // Adjust modal width dynamically based on PairTable content
+  // 🔹 Adjust modal width dynamically based on PairTable content
   useEffect(() => {
     if (tableRef.current && ticker) {
       const newWidth = Math.min(Math.max(tableRef.current.clientWidth + 40, 400), 1200);
       setModalWidth(`${newWidth}px`);
     }
-  }, [ticker]); // Recalculate width when `ticker` changes
+  }, [ticker]);
 
   return (
     <Modal open={isOpen} onClose={onClose} aria-labelledby="search-modal-title">
@@ -66,9 +74,18 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
           autoFocus
+          slotProps={{
+            input: {
+              endAdornment: isLoading ? (
+                <InputAdornment position="end">
+                  <CircularProgress size={20} />
+                </InputAdornment>
+              ) : null,
+            },
+          }}
         />
 
-        {/* ✅ Always re-render PairTable when ticker changes */}
+        {/*Only render PairTable if `ticker` exists */}
         {ticker && (
           <div ref={tableRef}>
             <PairTable key={ticker} ticker={ticker} />
@@ -83,4 +100,4 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => {
   );
 };
 
-export default SearchModal;
+export default SearchField;
