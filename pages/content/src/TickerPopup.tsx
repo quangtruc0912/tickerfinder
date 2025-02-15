@@ -33,7 +33,7 @@ export default function TickerPopup() {
 
       // Define default popup position (below and slightly centered relative to the target)
       let top = rect.top + scrollTop + rect.height; // Place the popup just below the hovered element
-      let left = rect.left + scrollLeft + rect.width / 4; // Center the popup relative to the hovered element
+      let left = rect.left + scrollLeft - 150; // Shift the popup 200px to the left
 
       // Check if the popup would overflow the right edge of the screen
       const popupWidth = 600; // Assuming a fixed width for the popup; adjust as needed

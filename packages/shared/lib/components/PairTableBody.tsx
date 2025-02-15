@@ -1,7 +1,18 @@
-import { useEffect, useState, memo, useMemo } from 'react';
+import { useEffect, useState, memo, useMemo, useRef } from 'react';
 import BodyPairRow from './BodyRow';
 import BodyPriorityRow from './BodyPriorityRow';
-import { Box, Skeleton, TableBody, TableCell, TableRow } from '@mui/material';
+import {
+  Box,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+  TableContainer,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
+} from '@mui/material';
 import { useDexScreener, useKucoin } from '../hooks';
 
 interface PairTableBodyProps {
@@ -12,28 +23,92 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
   const [ticker, setTicker] = useState('');
   const { data: dexData, isLoading: isDexLoading } = useDexScreener(ticker);
   const { data: kucoinData, isLoading: isKucoinLoading } = useKucoin(ticker);
-
   const kucoinDataMemo = useMemo(() => kucoinData, [kucoinData]);
-  const dataSliced = dexData;
+
+  const uniqueChainIds = useMemo(() => {
+    if (!dexData || !Array.isArray(dexData)) return [];
+    return Array.from(new Set(dexData.map(pair => pair.chainId)));
+  }, [dexData]);
+
+  const prevChainIdsRef = useRef<string[]>([]);
+  const [selectedChainIds, setSelectedChainIds] = useState<string[]>(uniqueChainIds);
+
+  useEffect(() => {
+    const prevChainIds = prevChainIdsRef.current;
+    const hasChanged = JSON.stringify(prevChainIds) !== JSON.stringify(uniqueChainIds);
+
+    if (hasChanged) {
+      setSelectedChainIds(uniqueChainIds);
+      prevChainIdsRef.current = uniqueChainIds;
+    }
+  }, [uniqueChainIds]);
+
+  const allSelected = selectedChainIds.length === uniqueChainIds.length && uniqueChainIds.length > 0;
+  const isIndeterminate = selectedChainIds.length > 0 && selectedChainIds.length < uniqueChainIds.length;
+
+  const handleSelectAll = () => {
+    setSelectedChainIds(allSelected ? [] : uniqueChainIds);
+  };
+
+  const handleCheckboxChange = (chainId: string) => {
+    setSelectedChainIds(prev => (prev.includes(chainId) ? prev.filter(id => id !== chainId) : [...prev, chainId]));
+  };
+
+  const filteredDexData = useMemo(() => {
+    if (!selectedChainIds.length) return dexData || [];
+    return dexData.filter(pair => selectedChainIds.includes(pair.chainId));
+  }, [dexData, selectedChainIds]);
 
   useEffect(() => {
     setTicker(temp);
   }, [temp]);
 
   return (
-    <TableBody style={{ display: 'block', maxHeight: '400px', overflowY: 'auto' }}>
-      {isKucoinLoading ? (
-        <BodySkeleton rows={1} heads={8} />
-      ) : kucoinData.name !== '' ? (
-        <BodyPriorityRow key={kucoinDataMemo.time} row={kucoinDataMemo} />
-      ) : null}
+    <Box sx={{ display: 'flex' }}>
+      <Box sx={{ width: '150px', padding: '10px', borderRight: '1px solid #ddd' }}>
+        <FormGroup>
+          {uniqueChainIds.length > 0 && (
+            <FormControlLabel
+              control={<Checkbox checked={allSelected} indeterminate={isIndeterminate} onChange={handleSelectAll} />}
+              label="All"
+            />
+          )}
 
-      {isDexLoading ? (
-        <BodySkeleton rows={5} heads={8} />
-      ) : (
-        dataSliced.map(row => <BodyPairRow key={row.pairAddress} row={row} />)
-      )}
-    </TableBody>
+          {uniqueChainIds.map(chainId => (
+            <FormControlLabel
+              key={chainId}
+              control={
+                <Checkbox checked={selectedChainIds.includes(chainId)} onChange={() => handleCheckboxChange(chainId)} />
+              }
+              label={`Chain ID: ${chainId}`}
+            />
+          ))}
+        </FormGroup>
+      </Box>
+
+      <TableContainer sx={{ flex: 1, maxHeight: '400px', overflowY: 'auto' }}>
+        <Table>
+          <TableBody>
+            {isKucoinLoading ? (
+              <BodySkeleton rows={1} heads={8} />
+            ) : kucoinData.name !== '' ? (
+              <BodyPriorityRow key={kucoinDataMemo.time} row={kucoinDataMemo} />
+            ) : null}
+            {isDexLoading ? (
+              <BodySkeleton rows={1} heads={8} />
+            ) : filteredDexData.length > 0 ? (
+              filteredDexData.map(row => <BodyPairRow key={row.pairAddress} row={row} />)
+            ) : (
+              <TableRow>
+                <TableCell colSpan={8} align="center">
+                  No data matching selected Chain IDs.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
   );
 });
 

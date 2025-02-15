@@ -61,7 +61,7 @@ export default function makeManifestPlugin(config: { outDir: string }): PluginOp
 function addRefreshContentScript(manifest: Manifest) {
   manifest.content_scripts = manifest.content_scripts || [];
   manifest.content_scripts.push({
-    matches: ['http://*/*', 'https://*/*', '<all_urls>'],
+    matches: ['https://twitter.com/*', 'https://x.com/*', 'https://facebook.com/*', 'https://www.facebook.com/*'],
     js: ['refresh.js'], // for public's HMR(refresh) support
   });
 }
