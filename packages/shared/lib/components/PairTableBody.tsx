@@ -51,12 +51,14 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
   };
 
   const handleCheckboxChange = (chainId: string) => {
-    setSelectedChainIds(prev => (prev.includes(chainId) ? prev.filter(id => id !== chainId) : [...prev, chainId]));
+    setSelectedChainIds(prev => {
+      const newSelected = prev.includes(chainId) ? prev.filter(id => id !== chainId) : [...prev, chainId];
+      return newSelected.length === uniqueChainIds.length ? uniqueChainIds : newSelected;
+    });
   };
 
   const filteredDexData = useMemo(() => {
-    if (!selectedChainIds.length) return dexData || [];
-    return dexData.filter(pair => selectedChainIds.includes(pair.chainId));
+    return selectedChainIds.length > 0 ? dexData.filter(pair => selectedChainIds.includes(pair.chainId)) : [];
   }, [dexData, selectedChainIds]);
 
   useEffect(() => {
@@ -65,7 +67,7 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <Box sx={{ width: '150px', padding: '10px', borderRight: '1px solid #ddd' }}>
+      <Box sx={{ width: '150px', padding: '10px' }}>
         <FormGroup>
           {uniqueChainIds.length > 0 && (
             <FormControlLabel
@@ -80,7 +82,18 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
               control={
                 <Checkbox checked={selectedChainIds.includes(chainId)} onChange={() => handleCheckboxChange(chainId)} />
               }
-              label={`Chain ID: ${chainId}`}
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <img
+                    src={`https://dd.dexscreener.com/ds-data/chains/${chainId}.png`}
+                    alt={`Chain ${chainId}`}
+                    width={20}
+                    height={20}
+                    style={{ marginRight: '8px' }}
+                  />
+                  {`${chainId}`}
+                </Box>
+              }
             />
           ))}
         </FormGroup>
