@@ -108,7 +108,7 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
               <BodyPriorityRow key={kucoinDataMemo.time} row={kucoinDataMemo} />
             ) : null}
             {isDexLoading ? (
-              <BodySkeleton rows={1} heads={8} />
+              <BodySkeleton rows={3} heads={8} />
             ) : filteredDexData.length > 0 ? (
               filteredDexData.map(row => <BodyPairRow key={row.pairAddress} row={row} />)
             ) : (
