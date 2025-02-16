@@ -39,8 +39,8 @@ const SearchField: React.FC<SearchFieldProps> = ({ isOpen, onClose }) => {
   // 🔹 Adjust modal width dynamically based on PairTable content
   useEffect(() => {
     if (tableRef.current && ticker) {
-      const newWidth = Math.min(Math.max(tableRef.current.clientWidth + 40, 400), 1200);
-      setModalWidth(`${newWidth}px`);
+      const newWidth = Math.min(Math.max(tableRef.current.clientWidth + 40, 400), 1300);
+      setModalWidth(`${newWidth + 150}px`); // Expand width by 150px
     }
   }, [ticker]);
 
@@ -51,7 +51,7 @@ const SearchField: React.FC<SearchFieldProps> = ({ isOpen, onClose }) => {
           position: 'absolute',
           top: '50%',
           left: '50%',
-          transform: 'translate(-50%, -50%)',
+          transform: 'translate(calc(-50% - 75px), -50%)', // Shift left by 75px
           width: modalWidth,
           maxWidth: '90%',
           bgcolor: 'background.default',

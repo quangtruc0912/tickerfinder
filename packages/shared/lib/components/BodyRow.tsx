@@ -191,6 +191,7 @@ export default function BodyPairRow({ row }: BodyRowProps) {
                   onClick={event => {
                     event.stopPropagation();
                     window.open(`https://www.coingecko.com/en/coins/` + row.baseToken.address, '_blank');
+                    // window.open(`https://www.geckoterminal.com/` + row.chainId + '/pools/' + row.baseToken.address, '_blank');
                   }}>
                   <Avatar
                     src={chrome.runtime.getURL(CoinGeckoIcon)}
