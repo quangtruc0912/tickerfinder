@@ -10,9 +10,10 @@ import { useTheme } from '@mui/material/styles';
 import { useWatchListStorage, coinGeckoStorage } from '@extension/storage';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { generateUUID } from '../utils/index';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+
+import BuySellChart from './BuySellCharts';
 
 function numberFormat(num: number, options?: any) {
   let temp = 2;
@@ -44,24 +45,42 @@ interface BodyRowProps {
 }
 
 export default function BodyPairRow({ row }: BodyRowProps) {
+  console.log('Parent component re-rendered');
+
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [coinGeckoAddresses, setCoinGeckoAddresses] = useState<Set<string>>(new Set());
   const theme = useTheme();
   const USD = Number(row.priceUsd);
-  const price = numberFormat(USD);
+
   const percent_change5m = Number(row.priceChange.m5).toFixed(2);
   const percent_change1h = Number(row.priceChange.h1).toFixed(2);
   const percent_change6h = Number(row.priceChange.h6).toFixed(2);
   const percent_change24h = Number(row.priceChange.h24).toFixed(2);
   const uuid = generateUUID();
 
+  const buys = useMemo(() => Number(row.txns.h24.buys) || 0, [row.txns.h24.buys]);
+  const sells = useMemo(() => Number(row.txns.h24.sells) || 0, [row.txns.h24.sells]);
+
   const CoinGeckoIcon = 'content/coingecko.svg'; // Replace with actual path
   const DexscreenerIcon = 'content/dexscreener.svg';
-  const marketCap = numberFormat(row.marketCap, {
-    notation: 'compact',
-    compactDisplay: 'short',
-  });
-  const volume_24 = numberFormat(row.volume.h24);
+
+  const price = useMemo(() => numberFormat(USD), [USD]);
+  const marketCap = useMemo(
+    () =>
+      numberFormat(row.marketCap, {
+        notation: 'compact',
+        compactDisplay: 'short',
+      }),
+    [row.marketCap],
+  );
+  const volume_24 = useMemo(
+    () =>
+      numberFormat(row.volume.h24, {
+        notation: 'compact',
+        compactDisplay: 'short',
+      }),
+    [row.volume.h24],
+  );
 
   const renderPercentage = (num: number) => {
     if (num > 0) {
@@ -295,7 +314,7 @@ export default function BodyPairRow({ row }: BodyRowProps) {
                   <span>MKT Cap: </span>
                   <SwitchTransition>
                     <CSSTransition
-                      key={marketCap} // Ensure unique key for transitions
+                      key={row.pairAddress} // Use a stable key
                       classNames="fade"
                       timeout={300} // Adjust as needed for transition speed
                     >
@@ -305,21 +324,37 @@ export default function BodyPairRow({ row }: BodyRowProps) {
                 </div>
               </Item>
             </Grid>
-            <Grid size={6}>
+            <Grid size={5}>
               <Item>
-                <div>
-                  <span>VOL 24H: </span>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center', // Center both the text and chart horizontally
+                    gap: '8px', // Optional: add space between the text and chart
+                  }}>
+                  <span style={{ marginRight: '8px' }}>VOL 24H: </span>
+
                   <SwitchTransition>
                     <CSSTransition
-                      key={marketCap} // Ensure unique key for transitions
+                      key={row.pairAddress} // Use a stable key
                       classNames="fade"
                       timeout={300} // Adjust as needed for transition speed
                     >
                       <span>{volume_24}</span>
                     </CSSTransition>
                   </SwitchTransition>
+
+                  {/* Add space between chart and volume text */}
                 </div>
               </Item>
+            </Grid>
+            <Grid size={1}>
+              <Tooltip title={`Buys: ${buys}, Sells: ${sells}`} arrow>
+                <Box sx={{ marginLeft: '8px' }} width={30} height={30}>
+                  <BuySellChart buys={buys} sells={sells} />
+                </Box>
+              </Tooltip>
             </Grid>
           </Grid>
         </Box>

@@ -47,7 +47,14 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
   const uuid = generateUUID();
   const percent_change24h = Number(row.changeRate);
 
-  const volume_24 = useMemo(() => numberFormat(Number(row.volValue)), [row.volValue]);
+  const volume_24 = useMemo(
+    () =>
+      numberFormat(Number(row.volValue), {
+        notation: 'compact',
+        compactDisplay: 'short',
+      }),
+    [row.volValue],
+  );
 
   const renderPercentage = (num: number) => {
     if (num > 0) {
