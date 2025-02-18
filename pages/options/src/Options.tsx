@@ -170,7 +170,11 @@ const ChangeLog = () => {
     {
       version: '0.1.6',
       date: 'Feb 18, 2025',
-      changes: ['🚀 Add chain filter for price display.', '✨ Chart Buys/Sells'],
+      changes: [
+        '🚀 Add chain filter for price display.',
+        '✨ Small Chart Buys/Sells to display buy sell presssure',
+        '🔄 Paging for sidepanel',
+      ],
       devComments: 'None',
     },
   ];
