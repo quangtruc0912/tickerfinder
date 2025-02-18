@@ -167,6 +167,12 @@ const ChangeLog = () => {
       devComments:
         'The Chrome extension automatically detects tickers and displays price/data when users hover over them. However, it only works for elements that already exist on the screen. Adding the ability for users to search for any ticker or contract address would provide more freedom.',
     },
+    {
+      version: '0.1.6',
+      date: 'Feb 18, 2025',
+      changes: ['🚀 Add chain filter for price display.', '✨ Chart Buys/Sells'],
+      devComments: 'None',
+    },
   ];
 
   return (

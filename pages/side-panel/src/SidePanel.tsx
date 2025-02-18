@@ -58,9 +58,13 @@ const SidePanel = () => {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [thresholdList, setThresholdList] = useState<Threshold[]>([]);
   let [threshold, setThreshold] = useState<Threshold>({ active: false, id: '', lower: 0, upper: 0 });
-  const [expandedItem, setExpandedItem] = useState<string | null>(null); // Track expanded item by its unique ID
-  const [alertMessage, setAlertMessage] = useState<string | null>(null); // To display alerts
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Define the number of items per page
 
   const setting = useStorage(settingStorage);
 
@@ -186,6 +190,17 @@ const SidePanel = () => {
       });
   };
 
+  useEffect(() => {
+    // Ensure current page is within the valid range when watchlist updates
+    if (currentPage > Math.ceil(watchlist.length / itemsPerPage)) {
+      setCurrentPage(1); // Reset to first page if the page number becomes invalid
+    }
+  }, [watchlist]); // Runs whenever the watchlist updates
+
+  const paginatedWatchlist = watchlist.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(watchlist.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+
   return (
     <>
       <Drawer
@@ -208,7 +223,7 @@ const SidePanel = () => {
           <Button onClick={toggleChangeRateDetail}>Display Change Rate Detail</Button>
           <Divider />
           <List>
-            {watchlist?.map(item => (
+            {paginatedWatchlist?.map(item => (
               <React.Fragment key={item.guidID}>
                 <ListItem
                   alignItems="center"
@@ -483,6 +498,25 @@ const SidePanel = () => {
               </React.Fragment>
             ))}
           </List>
+          <Box display="flex" justifyContent="center" alignItems="center" mt={2} gap={2}>
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => prev - 1)}>
+              Previous
+            </Button>
+            <Typography variant="body2">
+              Page {currentPage} of {totalPages}
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => prev + 1)}>
+              Next
+            </Button>
+          </Box>
           <Box mt="auto" p={2} textAlign="center" borderTop="1px solid #ccc">
             <Button variant="contained" onClick={toggleModal}>
               Open Search | Ctrl + /
