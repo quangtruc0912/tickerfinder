@@ -45,8 +45,6 @@ interface BodyRowProps {
 }
 
 export default function BodyPairRow({ row }: BodyRowProps) {
-  console.log('Parent component re-rendered');
-
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [coinGeckoAddresses, setCoinGeckoAddresses] = useState<Set<string>>(new Set());
   const theme = useTheme();
