@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PriorityPair } from '../models/ticker';
+import { coinGeckoStorage, CoinGeckoContractAddress } from '@extension/storage';
 
 export const PRIORITYCHAINLIST: readonly [string, string][] = [
   ['BTC', 'Bitcoin'],
@@ -99,17 +100,34 @@ export function useKucoin(ticker: string) {
     }));
   };
 
+  const [allContractAddresses, setAllContractAddresses] = useState<CoinGeckoContractAddress[]>([]);
+  useEffect(() => {
+    const fetchAllContractAddresses = async () => {
+      const result = await coinGeckoStorage.getAllContractAddress();
+      setAllContractAddresses(result);
+    };
+
+    fetchAllContractAddresses();
+  }, []);
+
+  const memoizedContractAddresses = useMemo(() => allContractAddresses, [allContractAddresses]);
+  const memoizedTicker = useMemo(() => ticker.toUpperCase(), [ticker]);
+
   async function init() {
     try {
       ticker = ticker.toUpperCase();
       const findResult = findInPriorityChainList(ticker);
-
-      if (findResult) {
+      const ca = memoizedContractAddresses.find(item => item.symbol.toLowerCase() === ticker.toLowerCase());
+      if (findResult || ca != null) {
         chrome.runtime.sendMessage({ type: 'FETCH_KUCOIN', ticker }, response => {
           if (response.data) {
-            response.data.ticker = findResult[0];
-            response.data.name = findResult[1];
-            updateState(response.data);
+            if (response.data.buy != null) {
+              response.data.ticker = findResult ? findResult[0] : ca?.symbol;
+              response.data.name = findResult ? findResult[1] : ca?.name;
+              updateState(response.data);
+            } else {
+              updateState(null);
+            }
           } else {
             console.error('Error:', response.error);
           }
@@ -128,9 +146,9 @@ export function useKucoin(ticker: string) {
       () => {
         init();
       },
-      1 * 5 * 1000,
+      1 * 7 * 1000,
     ); //
     return () => clearInterval(id);
-  }, [ticker]);
+  }, [memoizedTicker, memoizedContractAddresses]);
   return state;
 }

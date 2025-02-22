@@ -5,6 +5,7 @@ import {
   Threshold,
   useThresholdStorage,
   coinGeckoStorage,
+  CoinGeckoContractAddress,
 } from '@extension/storage';
 let isSidePanelOpen = false; // Track whether the side panel is open
 const INIT = ['BTC', 'SOL', 'ETH'];
@@ -236,6 +237,18 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
     })();
   } else if (message.type === 'open_options') {
     chrome.runtime.openOptionsPage();
+  } else if (message.type === 'COINGECKO_IMAGE') {
+    const id = message.id;
+    fetch(
+      `https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false`,
+    )
+      .then(res => {
+        return res.json();
+      })
+      .then(res => {
+        senderResponse(res);
+      });
+    return true; // Keep the message channel open for asynchronous response
   }
 });
 
@@ -352,7 +365,9 @@ chrome.runtime.onInstalled.addListener(async details => {
       }
     }
   } else if (details.reason === 'update') {
-    // console.log("Extension updated to a new version.");
+    chrome.storage.local.remove('COINGECKOCA', () => {
+      console.log('Key removed from local storage.');
+    });
   }
 });
 
@@ -405,11 +420,26 @@ function highlightSelection() {
   range.insertNode(span);
 }
 
+const processAssets = (assets: any[]): CoinGeckoContractAddress[] => {
+  return assets.map(asset => {
+    const uniqueContracts = Array.from(
+      new Set(Object.values(asset.platforms).map(contract => (contract as string).toLowerCase())),
+    );
+
+    return {
+      id: asset.id,
+      symbol: asset.symbol,
+      name: asset.name,
+      contracts: uniqueContracts,
+    };
+  });
+};
+
 const fetchCoinGeckoData = async () => {
   const url = `https://api.coingecko.com//api/v3/coins/list?include_platform=true`;
   const response = await fetch(url);
   let data = await response.json();
-  const contractAddresses = data.flatMap((token: any) => Object.values(token.platforms));
+  const contractAddresses = processAssets(data);
   coinGeckoStorage.setContractAddress(contractAddresses);
 };
 

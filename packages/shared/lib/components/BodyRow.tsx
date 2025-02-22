@@ -7,7 +7,7 @@ import { styled } from '@mui/material/styles';
 import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid2';
 import { useTheme } from '@mui/material/styles';
-import { useWatchListStorage, coinGeckoStorage } from '@extension/storage';
+import { useWatchListStorage, coinGeckoStorage, CoinGeckoContractAddress } from '@extension/storage';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -44,11 +44,12 @@ function numberFormat(num: number, options?: any) {
 
 interface BodyRowProps {
   row: Pair;
+  memoizedContractAddresses: CoinGeckoContractAddress[];
 }
 
-export default function BodyPairRow({ row }: BodyRowProps) {
+export default function BodyPairRow({ row, memoizedContractAddresses }: BodyRowProps) {
   const [isInWatchlist, setIsInWatchlist] = useState(false);
-  const [coinGeckoAddresses, setCoinGeckoAddresses] = useState<Set<string>>(new Set());
+
   const theme = useTheme();
   const USD = Number(row.priceUsd);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
@@ -130,11 +131,7 @@ export default function BodyPairRow({ row }: BodyRowProps) {
       const isAdded = watchlist.some(listItem => listItem.url === row.url);
       setIsInWatchlist(isAdded);
     };
-    const fetchContractAddresses = async () => {
-      const storedContracts = await coinGeckoStorage.getContractAddress();
-      setCoinGeckoAddresses(storedContracts);
-    };
-    fetchContractAddresses();
+
     checkWatchlist();
   }, [row]);
 
@@ -273,7 +270,9 @@ export default function BodyPairRow({ row }: BodyRowProps) {
                 </IconButton>
               </Tooltip>
               {/* Show CoinGecko Icon only if contractAddress is in storage */}
-              {coinGeckoAddresses.has(row.baseToken.address.toLowerCase()) && (
+              {memoizedContractAddresses?.find(obj =>
+                obj?.contracts?.includes(row.baseToken.address.toLocaleLowerCase()),
+              ) && (
                 <Tooltip title="Contract Address verified on CoinGecko. Redirect?" arrow>
                   <IconButton
                     style={{ backgroundColor: 'white', padding: 2 }}

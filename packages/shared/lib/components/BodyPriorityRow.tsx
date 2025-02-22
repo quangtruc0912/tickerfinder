@@ -7,8 +7,8 @@ import { styled } from '@mui/material/styles';
 import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid2';
 import { useTheme } from '@mui/material/styles';
-import { useMemo, useState, useEffect } from 'react';
-import { useWatchListStorage } from '@extension/storage';
+import { useMemo, useState, useEffect, memo } from 'react';
+import { useWatchListStorage, CoinGeckoContractAddress } from '@extension/storage';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
 import { generateUUID } from '../utils/index';
@@ -35,9 +35,11 @@ function numberFormat(num: number, options?: any) {
 
 interface BodyRowProps {
   row: PriorityPair; // Typing the `row` prop as RowData
+  memoizedContractAddresses: CoinGeckoContractAddress[];
 }
 
-export default function BodyPriorityPairRow({ row }: BodyRowProps) {
+const BodyPriorityPairRow = memo(({ row, memoizedContractAddresses }: BodyRowProps) => {
+  const memoizedRow = useMemo(() => row, [row.ticker, row.sell, row.volValue, row.changeRate]); // ✅ Only updates if actual values change
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const theme = useTheme();
   const USD = Number(row.sell);
@@ -95,7 +97,39 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
     };
 
     checkWatchlist();
-  }, [row]);
+  }, [row, memoizedContractAddresses]);
+
+  const [logoUrl, setLogoUrl] = useState(chrome.runtime.getURL(`content/${row.ticker.toUpperCase()}.svg`));
+
+  useEffect(() => {
+    const checkLogo = async () => {
+      const fileUrl = chrome.runtime.getURL(`content/${memoizedRow.ticker.toUpperCase()}.svg`);
+
+      try {
+        const response = await fetch(fileUrl);
+        if (response.ok) {
+          setLogoUrl(prev => (prev === fileUrl ? prev : fileUrl));
+        } else {
+          throw new Error('File not found');
+        }
+      } catch (error) {
+        const ca = memoizedContractAddresses.find(
+          item => item.symbol.toLowerCase() === memoizedRow.ticker.toLowerCase(),
+        );
+        if (ca) {
+          chrome.runtime.sendMessage({ type: 'COINGECKO_IMAGE', id: ca.id }, response => {
+            if (response && response.image) {
+              setLogoUrl(prev => (prev === response.image.small ? prev : response.image.small));
+            }
+          });
+        }
+      }
+    };
+
+    checkLogo();
+  }, [memoizedRow, memoizedContractAddresses]);
+
+  const finalLogoUrl = useMemo(() => logoUrl, [logoUrl]);
 
   const handleToggle = async () => {
     if (isInWatchlist) {
@@ -204,16 +238,15 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
             backgroundColor: '#121212',
           },
         })}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Avatar
-            src={chrome.runtime.getURL(logo)}
-            sx={{
-              width: 50,
-              height: 50,
-              mr: 1,
-            }}
-          />
-        </Box>
+        <Avatar
+          key={finalLogoUrl} // ✅ Forces re-render ONLY if logoUrl actually changes
+          src={finalLogoUrl || chrome.runtime.getURL('content/default-placeholder.svg')}
+          sx={{
+            width: 50,
+            height: 50,
+            mr: 1,
+          }}
+        />
       </TableCell>
       <TableCell
         style={{
@@ -227,7 +260,7 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
               <Item>{row.name}</Item>
             </Grid>
             <Grid size={4}>
-              <Item>{row.ticker}</Item>
+              <Item>{row.ticker.toUpperCase()}</Item>
             </Grid>
             <Grid size={12}>
               <Item>MKT Cap:{volume_24}</Item>
@@ -266,39 +299,6 @@ export default function BodyPriorityPairRow({ row }: BodyRowProps) {
       </TableCell>
     </TableRow>
   );
-}
+});
 
-{
-  /* <TableCell
-  title={row.baseToken.name} // The full text will appear when you hover over the cell
-  style={{
-    maxWidth: "200px", // Set a max width for the cell
-    overflow: "hidden", // Hide the overflowed text
-    textOverflow: "ellipsis", // Show ellipsis when the text overflows
-    whiteSpace: "nowrap", // Prevent text from wrapping
-  }}
-  padding="none"
-  sx={theme => ({
-    [theme.breakpoints.down('md')]: {
-      position: 'sticky',
-      left: 48,
-      zIndex: 10,
-      backgroundColor: '#121212',
-    },
-  })}>
-  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-    <Avatar
-      src={row.info?.imageUrl}
-      sx={{
-        width: 25,
-        height: 25,
-        mr: 1,
-      }}
-    />
-    <span>
-      {/* {trimName(row.baseToken.name, 30)}&nbsp;{row.baseToken.symbol} */
-}
-//{row.baseToken.symbol}
-//</span>
-//</Box>
-//</TableCell> */}
+export default BodyPriorityPairRow;

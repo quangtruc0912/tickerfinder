@@ -14,7 +14,7 @@ import {
   Checkbox,
 } from '@mui/material';
 import { useDexScreener, useKucoin } from '../hooks';
-
+import { coinGeckoStorage, CoinGeckoContractAddress } from '@extension/storage';
 interface PairTableBodyProps {
   temp: string;
 }
@@ -24,6 +24,17 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
   const { data: dexData, isLoading: isDexLoading } = useDexScreener(ticker);
   const { data: kucoinData, isLoading: isKucoinLoading } = useKucoin(ticker);
   const kucoinDataMemo = useMemo(() => kucoinData, [kucoinData]);
+  const [coinGeckoAddresses, setCoinGeckoAddresses] = useState<CoinGeckoContractAddress[]>([]);
+
+  useEffect(() => {
+    const fetchContractAddresses = async () => {
+      const storedContracts = await coinGeckoStorage.getAllContractAddress();
+      setCoinGeckoAddresses(storedContracts);
+    };
+    fetchContractAddresses();
+  }, []);
+
+  const memoizedContractAddresses = useMemo(() => coinGeckoAddresses, [coinGeckoAddresses]);
 
   const uniqueChainIds = useMemo(() => {
     if (!dexData || !Array.isArray(dexData)) return [];
@@ -105,12 +116,18 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
             {isKucoinLoading ? (
               <BodySkeleton rows={1} heads={8} />
             ) : kucoinData.name !== '' ? (
-              <BodyPriorityRow key={kucoinDataMemo.time} row={kucoinDataMemo} />
+              <BodyPriorityRow
+                key={kucoinDataMemo.time}
+                row={kucoinDataMemo}
+                memoizedContractAddresses={memoizedContractAddresses}
+              />
             ) : null}
             {isDexLoading ? (
               <BodySkeleton rows={3} heads={8} />
             ) : filteredDexData.length > 0 ? (
-              filteredDexData.map(row => <BodyPairRow key={row.pairAddress} row={row} />)
+              filteredDexData.map(row => (
+                <BodyPairRow key={row.pairAddress} row={row} memoizedContractAddresses={memoizedContractAddresses} />
+              ))
             ) : (
               <TableRow>
                 <TableCell colSpan={8} align="center">
