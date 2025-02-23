@@ -6,6 +6,8 @@ import {
   useThresholdStorage,
   coinGeckoStorage,
   CoinGeckoContractAddress,
+  KuCoinData,
+  KuCoinStorage,
 } from '@extension/storage';
 let isSidePanelOpen = false; // Track whether the side panel is open
 const INIT = ['BTC', 'SOL', 'ETH'];
@@ -366,8 +368,14 @@ chrome.runtime.onInstalled.addListener(async details => {
     }
   } else if (details.reason === 'update') {
     chrome.storage.local.remove('COINGECKOCA', () => {
-      console.log('Key removed from local storage.');
+      console.log('Key COINGECKOCA removed from local storage.');
     });
+    chrome.storage.local.remove('KUCOINDATA', () => {
+      console.log('Key KUCOINDATA removed from local storage.');
+    });
+    const response = await fetch(chrome.runtime.getURL('content/kucoin_coingecko_resolved.json'));
+    const data: KuCoinData[] = await response.json();
+    KuCoinStorage.setData(data);
   }
 });
 

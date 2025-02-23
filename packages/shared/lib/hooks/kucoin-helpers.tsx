@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { PriorityPair } from '../models/ticker';
-import { coinGeckoStorage, CoinGeckoContractAddress } from '@extension/storage';
+import { KuCoinStorage, KuCoinData } from '@extension/storage';
 
 export const PRIORITYCHAINLIST: readonly [string, string][] = [
   ['BTC', 'Bitcoin'],
@@ -100,30 +100,30 @@ export function useKucoin(ticker: string) {
     }));
   };
 
-  const [allContractAddresses, setAllContractAddresses] = useState<CoinGeckoContractAddress[]>([]);
+  const [allKucoinData, setAllKucoinData] = useState<KuCoinData[]>([]);
   useEffect(() => {
-    const fetchAllContractAddresses = async () => {
-      const result = await coinGeckoStorage.getAllContractAddress();
-      setAllContractAddresses(result);
+    const fetchAllKucoinData = async () => {
+      const result = await KuCoinStorage.getAllData();
+      setAllKucoinData(result);
     };
 
-    fetchAllContractAddresses();
+    fetchAllKucoinData();
   }, []);
 
-  const memoizedContractAddresses = useMemo(() => allContractAddresses, [allContractAddresses]);
+  const memoizedContractAddresses = useMemo(() => allKucoinData, [allKucoinData]);
   const memoizedTicker = useMemo(() => ticker.toUpperCase(), [ticker]);
 
   async function init() {
     try {
       ticker = ticker.toUpperCase();
       const findResult = findInPriorityChainList(ticker);
-      const ca = memoizedContractAddresses.find(item => item.symbol.toLowerCase() === ticker.toLowerCase());
-      if (findResult || ca != null) {
+      const data = memoizedContractAddresses.find(item => item.symbol.toLowerCase() === ticker.toLowerCase());
+      if (findResult || data != null) {
         chrome.runtime.sendMessage({ type: 'FETCH_KUCOIN', ticker }, response => {
           if (response.data) {
             if (response.data.buy != null) {
-              response.data.ticker = findResult ? findResult[0] : ca?.symbol;
-              response.data.name = findResult ? findResult[1] : ca?.name;
+              response.data.ticker = findResult ? findResult[0] : data?.symbol;
+              response.data.name = findResult ? findResult[1] : data?.name;
               updateState(response.data);
             } else {
               updateState(null);
@@ -146,7 +146,7 @@ export function useKucoin(ticker: string) {
       () => {
         init();
       },
-      1 * 7 * 1000,
+      1 * 5 * 1000,
     ); //
     return () => clearInterval(id);
   }, [memoizedTicker, memoizedContractAddresses]);

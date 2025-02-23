@@ -14,7 +14,7 @@ import {
   Checkbox,
 } from '@mui/material';
 import { useDexScreener, useKucoin } from '../hooks';
-import { coinGeckoStorage, CoinGeckoContractAddress } from '@extension/storage';
+import { coinGeckoStorage, CoinGeckoContractAddress, KuCoinData, KuCoinStorage } from '@extension/storage';
 interface PairTableBodyProps {
   temp: string;
 }
@@ -23,18 +23,29 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
   const [ticker, setTicker] = useState('');
   const { data: dexData, isLoading: isDexLoading } = useDexScreener(ticker);
   const { data: kucoinData, isLoading: isKucoinLoading } = useKucoin(ticker);
-  const kucoinDataMemo = useMemo(() => kucoinData, [kucoinData]);
+
+  const kucoinDataMemo = useMemo(() => {
+    return kucoinData.name !== '' ? { ...kucoinData } : null;
+  }, [kucoinData.name, kucoinData.time]);
+
   const [coinGeckoAddresses, setCoinGeckoAddresses] = useState<CoinGeckoContractAddress[]>([]);
+  const [KucoinData, setKucoinData] = useState<KuCoinData[]>([]);
 
   useEffect(() => {
     const fetchContractAddresses = async () => {
       const storedContracts = await coinGeckoStorage.getAllContractAddress();
       setCoinGeckoAddresses(storedContracts);
     };
+    const fetchAllKucoinData = async () => {
+      const result = await KuCoinStorage.getAllData();
+      setKucoinData(result);
+    };
+    fetchAllKucoinData();
     fetchContractAddresses();
   }, []);
 
   const memoizedContractAddresses = useMemo(() => coinGeckoAddresses, [coinGeckoAddresses]);
+  const memoizedKuCoinData = useMemo(() => KucoinData, [KucoinData]);
 
   const uniqueChainIds = useMemo(() => {
     if (!dexData || !Array.isArray(dexData)) return [];
@@ -115,12 +126,8 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
           <TableBody>
             {isKucoinLoading ? (
               <BodySkeleton rows={1} heads={8} />
-            ) : kucoinData.name !== '' ? (
-              <BodyPriorityRow
-                key={kucoinDataMemo.time}
-                row={kucoinDataMemo}
-                memoizedContractAddresses={memoizedContractAddresses}
-              />
+            ) : kucoinDataMemo ? (
+              <BodyPriorityRow row={kucoinDataMemo} memoizedKucoinData={memoizedKuCoinData} />
             ) : null}
             {isDexLoading ? (
               <BodySkeleton rows={3} heads={8} />

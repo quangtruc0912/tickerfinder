@@ -8,7 +8,7 @@ import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid2';
 import { useTheme } from '@mui/material/styles';
 import { useMemo, useState, useEffect, memo } from 'react';
-import { useWatchListStorage, CoinGeckoContractAddress } from '@extension/storage';
+import { KuCoinData, useWatchListStorage } from '@extension/storage';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
 import { generateUUID } from '../utils/index';
@@ -35,10 +35,10 @@ function numberFormat(num: number, options?: any) {
 
 interface BodyRowProps {
   row: PriorityPair; // Typing the `row` prop as RowData
-  memoizedContractAddresses: CoinGeckoContractAddress[];
+  memoizedKucoinData: KuCoinData[];
 }
 
-const BodyPriorityPairRow = memo(({ row, memoizedContractAddresses }: BodyRowProps) => {
+const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => {
   const memoizedRow = useMemo(() => row, [row.ticker, row.sell, row.volValue, row.changeRate]); // ✅ Only updates if actual values change
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const theme = useTheme();
@@ -48,7 +48,8 @@ const BodyPriorityPairRow = memo(({ row, memoizedContractAddresses }: BodyRowPro
   const logo = `content/${row.ticker.toUpperCase()}.svg`;
   const uuid = generateUUID();
   const percent_change24h = Number(row.changeRate);
-
+  const [logoUrl, setLogoUrl] = useState(chrome.runtime.getURL(`content/${row.ticker.toUpperCase()}.svg`));
+  const finalLogoUrl = useMemo(() => logoUrl, [logoUrl]);
   const volume_24 = useMemo(
     () =>
       numberFormat(Number(row.volValue), {
@@ -97,9 +98,7 @@ const BodyPriorityPairRow = memo(({ row, memoizedContractAddresses }: BodyRowPro
     };
 
     checkWatchlist();
-  }, [row, memoizedContractAddresses]);
-
-  const [logoUrl, setLogoUrl] = useState(chrome.runtime.getURL(`content/${row.ticker.toUpperCase()}.svg`));
+  }, [memoizedRow, memoizedKucoinData]);
 
   useEffect(() => {
     const checkLogo = async () => {
@@ -113,23 +112,15 @@ const BodyPriorityPairRow = memo(({ row, memoizedContractAddresses }: BodyRowPro
           throw new Error('File not found');
         }
       } catch (error) {
-        const ca = memoizedContractAddresses.find(
-          item => item.symbol.toLowerCase() === memoizedRow.ticker.toLowerCase(),
-        );
+        const ca = memoizedKucoinData.find(item => item.symbol.toLowerCase() === memoizedRow.ticker.toLowerCase());
         if (ca) {
-          chrome.runtime.sendMessage({ type: 'COINGECKO_IMAGE', id: ca.id }, response => {
-            if (response && response.image) {
-              setLogoUrl(prev => (prev === response.image.small ? prev : response.image.small));
-            }
-          });
+          setLogoUrl(ca.image);
         }
       }
     };
 
     checkLogo();
-  }, [memoizedRow, memoizedContractAddresses]);
-
-  const finalLogoUrl = useMemo(() => logoUrl, [logoUrl]);
+  }, [memoizedRow, memoizedKucoinData]);
 
   const handleToggle = async () => {
     if (isInWatchlist) {
@@ -171,7 +162,7 @@ const BodyPriorityPairRow = memo(({ row, memoizedContractAddresses }: BodyRowPro
         },
         borderBottom: `1px solid ${theme.palette.divider}`, // White line or divider line at the bottom
       }}
-      onClick={() => window.open(`https://www.kucoin.com/trade/${row.ticker}-USDT`, '_blank')}>
+      onClick={() => window.open(`https://www.kucoin.com/trade/${row.ticker.toUpperCase()}-USDT`, '_blank')}>
       <TableCell>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <IconButton
@@ -263,7 +254,7 @@ const BodyPriorityPairRow = memo(({ row, memoizedContractAddresses }: BodyRowPro
               <Item>{row.ticker.toUpperCase()}</Item>
             </Grid>
             <Grid size={12}>
-              <Item>MKT Cap:{volume_24}</Item>
+              <Item>VOL 24H: {volume_24}</Item>
             </Grid>
           </Grid>
         </Box>
