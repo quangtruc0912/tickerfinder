@@ -56,7 +56,7 @@ const fetchPriorityCoin = async (symbol: string, watchlist: WatchlistItem) => {
     name: watchlist.name,
     symbol: watchlist.symbol,
     url: watchlist.url,
-    imageUrl: `content/${watchlist.symbol.toUpperCase()}.svg`,
+    imageUrl: watchlist.imageUrl,
     isPriority: true,
     changeRate5m: '0',
     changeRate1h: '0',

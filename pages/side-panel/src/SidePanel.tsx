@@ -233,7 +233,13 @@ const SidePanel = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <ListItemAvatar style={{ position: 'relative' }}>
                         <Avatar
-                          src={item.isPriority ? chrome.runtime.getURL(item?.imageUrl) : item?.imageUrl}
+                          src={
+                            item.isPriority
+                              ? item?.imageUrl.startsWith('https')
+                                ? item?.imageUrl
+                                : chrome.runtime.getURL(item?.imageUrl)
+                              : item?.imageUrl
+                          }
                           alt={item.symbol}
                         />
                         <IconButton

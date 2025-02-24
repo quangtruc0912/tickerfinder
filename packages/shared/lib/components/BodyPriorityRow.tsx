@@ -126,6 +126,7 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
     if (isInWatchlist) {
       await useWatchListStorage.removePriorityFromWatchlist(row.name);
     } else {
+      console.log(logoUrl);
       await useWatchListStorage.addToWatchlist({
         guidID: uuid,
         address: '',
@@ -137,7 +138,7 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
         chainId: '',
         changeRate24h: row.changeRate,
         price: row.sell,
-        imageUrl: logo,
+        imageUrl: logoUrl,
         changeRate5m: '0',
         changeRate1h: '0',
         changeRate6h: '0',
