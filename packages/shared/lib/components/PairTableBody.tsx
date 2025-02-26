@@ -21,6 +21,7 @@ interface PairTableBodyProps {
 
 const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
   const [ticker, setTicker] = useState('');
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const { data: dexData, isLoading: isDexLoading } = useDexScreener(ticker);
   const { data: kucoinData, isLoading: isKucoinLoading } = useKucoin(ticker);
 
@@ -30,6 +31,10 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
 
   const [coinGeckoAddresses, setCoinGeckoAddresses] = useState<CoinGeckoContractAddress[]>([]);
   const [KucoinData, setKucoinData] = useState<KuCoinData[]>([]);
+
+  const toggleExpandItem = (id: string) => {
+    setExpandedItem(expandedItem === id ? null : id); // Collapse if already expanded, otherwise expand the new one
+  };
 
   useEffect(() => {
     const fetchContractAddresses = async () => {
@@ -133,7 +138,13 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
               <BodySkeleton rows={3} heads={8} />
             ) : filteredDexData.length > 0 ? (
               filteredDexData.map(row => (
-                <BodyPairRow key={row.pairAddress} row={row} memoizedContractAddresses={memoizedContractAddresses} />
+                <BodyPairRow
+                  key={row.pairAddress}
+                  row={row}
+                  memoizedContractAddresses={memoizedContractAddresses}
+                  expandedItem={expandedItem}
+                  toggleExpandItem={toggleExpandItem}
+                />
               ))
             ) : (
               <TableRow>

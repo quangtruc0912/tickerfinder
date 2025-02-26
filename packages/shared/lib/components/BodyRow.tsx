@@ -16,7 +16,7 @@ import { detectBlockchain } from '../utils/chain-helpers';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import BuySellChart from './BuySellCharts';
-
+import React from 'react';
 function numberFormat(num: number, options?: any) {
   let temp = 2;
 
@@ -42,17 +42,41 @@ function numberFormat(num: number, options?: any) {
   return new Intl.NumberFormat('en-US', { ...defaultOptions, ...options }).format(num);
 }
 
+const Item = styled(Paper)(({ theme }) => ({
+  backgroundColor: theme.palette.background.default,
+  ...theme.typography.body2,
+  padding: theme.spacing(0.5),
+  textAlign: 'center',
+  flexGrow: 1,
+  border: `2px solid ${theme.palette.divider}`, // Thicker and more visible border
+  borderRadius: theme.shape.borderRadius, // Optional: keep border rounded for better visuals
+}));
+
+const MiniChartIframe = React.memo(({ src, onError }: { src: string; onError: () => void }) => (
+  <iframe
+    src={src}
+    width="100%"
+    height="220"
+    frameBorder="0"
+    style={{ display: 'block' }}
+    onError={onError} // Triggered if the iframe fails to load
+  />
+));
+
 interface BodyRowProps {
   row: Pair;
   memoizedContractAddresses: CoinGeckoContractAddress[];
+  expandedItem: string | null; // Add this prop
+  toggleExpandItem: (id: string) => void; // Add this prop
 }
 
-export default function BodyPairRow({ row, memoizedContractAddresses }: BodyRowProps) {
+export default function BodyPairRow({ row, memoizedContractAddresses, expandedItem, toggleExpandItem }: BodyRowProps) {
   const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [chartError, setChartError] = useState(false); // Track if symbol is invalid
 
   const theme = useTheme();
   const USD = Number(row.priceUsd);
-  const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
   const percent_change5m = Number(row.priceChange.m5).toFixed(2);
   const percent_change1h = Number(row.priceChange.h1).toFixed(2);
@@ -115,15 +139,6 @@ export default function BodyPairRow({ row, memoizedContractAddresses }: BodyRowP
       </Box>
     );
   };
-  const Item = styled(Paper)(({ theme }) => ({
-    backgroundColor: theme.palette.background.default,
-    ...theme.typography.body2,
-    padding: theme.spacing(0.5),
-    textAlign: 'center',
-    flexGrow: 1,
-    border: `2px solid ${theme.palette.divider}`, // Thicker and more visible border
-    borderRadius: theme.shape.borderRadius, // Optional: keep border rounded for better visuals
-  }));
 
   useEffect(() => {
     const checkWatchlist = async () => {
@@ -160,9 +175,6 @@ export default function BodyPairRow({ row, memoizedContractAddresses }: BodyRowP
     setIsInWatchlist(prev => !prev);
   };
 
-  const toggleExpandItem = (id: string) => {
-    setExpandedItem(expandedItem === id ? null : id); // Toggle expanded state
-  };
   function calculateAge(pairCreatedAt: string): string {
     const createdAt = new Date(pairCreatedAt);
     const now = new Date();
@@ -201,6 +213,29 @@ export default function BodyPairRow({ row, memoizedContractAddresses }: BodyRowP
 
     return parts.join(' ');
   }
+
+  const miniChartUrl = useMemo(() => {
+    const symbol = `CRYPTO:${row.baseToken.symbol}USD`; // e.g., "POPE%2FSOL" (URL-encoded "/")
+
+    const config = {
+      symbol: symbol,
+      width: 350, // Fixed width for Mini Chart
+      height: 220, // Fixed height for Mini Chart
+      dateRange: '1D', // Default to 1 day; Mini Chart doesn't support full timeFrames array, adjust as needed
+      colorTheme: 'dark',
+      isTransparent: false,
+      autosize: false,
+      largeChartUrl: '',
+      chartOnly: true, // Hides extra UI
+      noTimeScale: false, // Shows timescale; set to true to hide X-axis if desired
+      utm_source: 'www.tradingview.com',
+      utm_medium: 'widget_new',
+      utm_campaign: 'mini-symbol-overview',
+      page_uri: 'www.tradingview.com/widget-wizard/en/dark/mini-chart/',
+    };
+    const encodedConfig = encodeURIComponent(JSON.stringify(config));
+    return `https://www.tradingview-widget.com/embed-widget/mini-symbol-overview/?locale=en#${encodedConfig}`;
+  }, [row.baseToken.symbol, row.quoteToken.symbol, theme.palette.mode]);
 
   return (
     <>
@@ -524,22 +559,15 @@ export default function BodyPairRow({ row, memoizedContractAddresses }: BodyRowP
           </Box>
         </TableCell>
       </TableRow>
-      {expandedItem && (
+      {expandedItem === row.pairAddress && (
         <TableRow
           sx={{
-            backgroundColor: 'background.default', // Theme-aware
-            color: theme.palette.background.default, // Theme-aware
-            border: `2px solid ${theme.palette.divider}`, // Thicker and more visible border
-            borderRadius: theme.shape.borderRadius, // Optional: keep border rounded for better visuals
+            backgroundColor: 'background.default',
+            color: theme.palette.background.default,
+            border: `2px solid ${theme.palette.divider}`,
+            borderRadius: theme.shape.borderRadius,
           }}>
-          <TableCell
-            colSpan={4}
-            style={{
-              overflow: 'hidden', // Hide the overflowed text
-              textOverflow: 'ellipsis', // Show ellipsis when the text overflows
-              whiteSpace: 'nowrap', // Prevent text from wrapping
-              padding: '10px', // Add padding to the expanded section
-            }}>
+          <TableCell colSpan={6} style={{ padding: '10px' }}>
             <Box sx={{ flexGrow: 1 }}>
               <Grid container spacing={0} rowSpacing={1}>
                 <Grid size={6}>
@@ -561,7 +589,7 @@ export default function BodyPairRow({ row, memoizedContractAddresses }: BodyRowP
                 <Grid size={6}>
                   <Item>
                     <div>
-                      <span>{row.pairAddress}</span>
+                      <span>CA: {row.pairAddress}</span>
                     </div>
                   </Item>
                 </Grid>
@@ -571,6 +599,16 @@ export default function BodyPairRow({ row, memoizedContractAddresses }: BodyRowP
                       <span>Pair Created: </span>
                       <span>{calculateAge(new Date(row.pairCreatedAt).toLocaleString())} ago</span>
                     </div>
+                  </Item>
+                </Grid>
+                {/* TradingView Widget */}
+                <Grid size={12}>
+                  <Item>
+                    {chartError ? (
+                      <Box>Chart not available for {row.baseToken.symbol}</Box>
+                    ) : (
+                      <MiniChartIframe src={miniChartUrl} onError={() => setChartError(true)} />
+                    )}
                   </Item>
                 </Grid>
               </Grid>
