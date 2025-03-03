@@ -12,7 +12,7 @@ const SearchField: React.FC<SearchFieldProps> = ({ isOpen, onClose }) => {
   const tableRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [ticker, setTicker] = useState('');
-  const [modalWidth, setModalWidth] = useState('900px');
+  const [modalWidth, setModalWidth] = useState('1000px');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {

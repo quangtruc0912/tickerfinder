@@ -7,7 +7,7 @@ import { styled } from '@mui/material/styles';
 import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid2';
 import { useTheme } from '@mui/material/styles';
-import { useWatchListStorage, coinGeckoStorage, CoinGeckoContractAddress } from '@extension/storage';
+import { useWatchListStorage, CoinGeckoContractAddress } from '@extension/storage';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -52,16 +52,18 @@ const Item = styled(Paper)(({ theme }) => ({
   borderRadius: theme.shape.borderRadius, // Optional: keep border rounded for better visuals
 }));
 
-const MiniChartIframe = React.memo(({ src, onError }: { src: string; onError: () => void }) => (
-  <iframe
-    src={src}
-    width="100%"
-    height="220"
-    frameBorder="0"
-    style={{ display: 'block' }}
-    onError={onError} // Triggered if the iframe fails to load
-  />
+const MiniChartIframe = React.memo(({ src, onLoad }: { src: string; onLoad: () => void }) => (
+  <iframe src={src} width="100%" height="220" frameBorder="0" style={{ display: 'block' }} onLoad={onLoad} />
 ));
+
+const commonQuoteTokens = new Set(['ETH', 'WETH', 'USDT', 'BTC', 'BNB', 'SOL']);
+
+const isLikelyTradingViewSymbol = (pair: Pair): boolean => {
+  const quoteSymbol = pair.quoteToken.symbol?.toUpperCase() || '';
+
+  // Check if chain or DEX is supported and quote token is common
+  return commonQuoteTokens.has(quoteSymbol);
+};
 
 interface BodyRowProps {
   row: Pair;
@@ -72,6 +74,7 @@ interface BodyRowProps {
 
 export default function BodyPairRow({ row, memoizedContractAddresses, expandedItem, toggleExpandItem }: BodyRowProps) {
   const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [isSymbolValid, setIsSymbolValid] = useState<boolean | null>(null); // null = loading, true = valid, false = invalid
   const [isLoading, setIsLoading] = useState(true);
   const [chartError, setChartError] = useState(false); // Track if symbol is invalid
 
@@ -214,14 +217,33 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
     return parts.join(' ');
   }
 
+  const isLikelyValid = useMemo(() => isLikelyTradingViewSymbol(row), [row]);
+
+  useEffect(() => {
+    if (expandedItem === row.pairAddress && isSymbolValid === null && isLikelyValid) {
+      setIsSymbolValid(true); // Assume valid initially if likely supported
+      const timeout = setTimeout(() => {
+        if (isSymbolValid === true) {
+          setIsSymbolValid(false);
+          console.log(
+            `Symbol ${row.baseToken.symbol || 'ANYONE'}/${row.quoteToken.symbol === '0x0' ? 'ETH' : row.quoteToken.symbol || 'ETH'} likely invalid`,
+          );
+        }
+      }, 5000); // 5-second timeout
+      return () => clearTimeout(timeout);
+    } else if (expandedItem === row.pairAddress && !isLikelyValid) {
+      setIsSymbolValid(false); // Skip loading if unlikely to be supported
+    }
+  }, [expandedItem, row.pairAddress, isSymbolValid, isLikelyValid]);
+
   const miniChartUrl = useMemo(() => {
-    const symbol = `CRYPTO:${row.baseToken.symbol}USD`; // e.g., "POPE%2FSOL" (URL-encoded "/")
+    const symbol = `MEXC:${row.baseToken.symbol}USDT`; // e.g., "POPE%2FSOL" (URL-encoded "/")
 
     const config = {
       symbol: symbol,
       width: 350, // Fixed width for Mini Chart
       height: 220, // Fixed height for Mini Chart
-      dateRange: '1D', // Default to 1 day; Mini Chart doesn't support full timeFrames array, adjust as needed
+      dateRange: '1M', // Default to 1 W; Mini Chart doesn't support full timeFrames array, adjust as needed
       colorTheme: 'dark',
       isTransparent: false,
       autosize: false,
@@ -604,10 +626,12 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
                 {/* TradingView Widget */}
                 <Grid size={12}>
                   <Item>
-                    {chartError ? (
-                      <Box>Chart not available for {row.baseToken.symbol}</Box>
+                    {isSymbolValid === null ? (
+                      <Box>Loading chart...</Box>
+                    ) : isSymbolValid ? (
+                      <MiniChartIframe src={miniChartUrl} onLoad={() => console.log('Chart loaded')} />
                     ) : (
-                      <MiniChartIframe src={miniChartUrl} onError={() => setChartError(true)} />
+                      <Box>Chart not available on TradingView</Box>
                     )}
                   </Item>
                 </Grid>
