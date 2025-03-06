@@ -195,7 +195,7 @@ const notifyUser = (triggered: WatchlistItem[]) => {
 chrome.runtime.onMessage.addListener(
   (
     message: { type: string; ticker?: string; id?: string; tab?: chrome.tabs.Tab },
-    sender,
+    _sender,
     senderResponse: (response: any) => void,
   ) => {
     const { type, ticker, id, tab } = message;
@@ -206,7 +206,7 @@ chrome.runtime.onMessage.addListener(
 
       case 'GET_WATCHLIST':
         senderResponse(watchlist);
-        break;
+        return true;
 
       case 'GET_THRESHOLD':
         return fetchThreshold(id!, senderResponse);
@@ -219,14 +219,17 @@ chrome.runtime.onMessage.addListener(
             enabled: !isSidePanelOpen, // Disables the side panel
           });
         })();
-        break;
+        return true;
 
       case 'open_options':
         chrome.runtime.openOptionsPage();
-        break;
+        return true;
 
       case 'COINGECKO_IMAGE':
         return fetchCoingeckoImage(id!, senderResponse);
+
+      default:
+        return true;
     }
   },
 );
