@@ -2,7 +2,6 @@ import '@src/SidePanel.css';
 import { withErrorBoundary, withSuspense, useStorage } from '@extension/shared';
 import { Threshold, useWatchListStorage, WatchlistItem, useThresholdStorage, settingStorage } from '@extension/storage';
 import React, { useState, useEffect } from 'react';
-import {} from '@extension/shared';
 import {
   Drawer,
   List,
@@ -17,17 +16,20 @@ import {
   Collapse,
   TextField,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import ChangeRateCard from './ChangeRateCard';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import ReactDOM from 'react-dom';
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
 
 function formatCustomPrice(price: number): string {
   if (price === undefined || price === 0) {
@@ -54,14 +56,35 @@ function formatCustomPrice(price: number): string {
   // Otherwise, return the price as a normal decimal without trailing zeros
   return parseFloat(priceString).toString(); // Remove trailing zeros from normal decimals
 }
+
+function a11yProps(index: number) {
+  return {
+    id: `tab-${index}`,
+    'aria-controls': `tabpanel-${index}`,
+  };
+}
+function CustomTabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}>
+      {value === index && <div>{children}</div>}
+    </div>
+  );
+}
+
 const SidePanel = () => {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [thresholdList, setThresholdList] = useState<Threshold[]>([]);
   let [threshold, setThreshold] = useState<Threshold>({ active: false, id: '', lower: 0, upper: 0 });
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
+  const [value, setValue] = React.useState(0);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // Define the number of items per page
@@ -197,6 +220,10 @@ const SidePanel = () => {
     }
   }, [watchlist]); // Runs whenever the watchlist updates
 
+  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+    setValue(newValue);
+  };
+
   const paginatedWatchlist = watchlist.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(watchlist.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -220,309 +247,320 @@ const SidePanel = () => {
           },
         }}>
         <Box p={2} display="flex" flexDirection="column" height="100%">
-          <Button onClick={toggleChangeRateDetail}>Display Change Rate Detail</Button>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
+              <Tab label="Watch List" {...a11yProps(0)} />
+              <Tab label="Wallet" {...a11yProps(1)} />
+            </Tabs>
+          </Box>
           <Divider />
-          <List>
-            {paginatedWatchlist?.map(item => (
-              <React.Fragment key={item.guidID}>
-                <ListItem
-                  alignItems="center"
-                  onClick={() => toggleExpandItem(item.guidID)} // Expand/Collapse on click
-                  sx={{ display: 'block' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '-webkit-fill-available' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <ListItemAvatar style={{ position: 'relative' }}>
-                        <Avatar
-                          src={
-                            item.isPriority
-                              ? item?.imageUrl.startsWith('https')
-                                ? item?.imageUrl
-                                : chrome.runtime.getURL(item?.imageUrl)
-                              : item?.imageUrl
-                          }
-                          alt={item.symbol}
-                        />
-                        <IconButton
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            right: 0,
-                            backgroundColor: 'white', // Optional: To make the button stand out
-                            padding: 4,
-                          }}
-                          size="small"
-                          onClick={event => {
-                            event.stopPropagation();
-                            handleRedirect(item);
-                          }}>
-                          <OpenInNewIcon fontSize="small" sx={{ fontSize: 10 }} />
-                        </IconButton>
-                      </ListItemAvatar>
-                      <Box sx={{ marginLeft: 1 }}>
-                        <ListItemText
-                          primary={
-                            <Typography variant="body1" fontWeight="500">
-                              {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
-                            </Typography>
-                          }
-                          secondary={
-                            <Typography variant="body2" color="gray">
-                              {item.symbol}
-                            </Typography>
-                          }
-                        />
+          <CustomTabPanel value={value} index={0}>
+            <List>
+              {paginatedWatchlist?.map(item => (
+                <React.Fragment key={item.guidID}>
+                  <ListItem
+                    alignItems="center"
+                    onClick={() => toggleExpandItem(item.guidID)} // Expand/Collapse on click
+                    sx={{ display: 'block' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '-webkit-fill-available' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <ListItemAvatar style={{ position: 'relative' }}>
+                          <Avatar
+                            src={
+                              item.isPriority
+                                ? item?.imageUrl.startsWith('https')
+                                  ? item?.imageUrl
+                                  : chrome.runtime.getURL(item?.imageUrl)
+                                : item?.imageUrl
+                            }
+                            alt={item.symbol}
+                          />
+                          <IconButton
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              right: 0,
+                              backgroundColor: 'white', // Optional: To make the button stand out
+                              padding: 4,
+                            }}
+                            size="small"
+                            onClick={event => {
+                              event.stopPropagation();
+                              handleRedirect(item);
+                            }}>
+                            <OpenInNewIcon fontSize="small" sx={{ fontSize: 10 }} />
+                          </IconButton>
+                        </ListItemAvatar>
+                        <Box sx={{ marginLeft: 1 }}>
+                          <ListItemText
+                            primary={
+                              <Typography variant="body1" fontWeight="500">
+                                {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
+                              </Typography>
+                            }
+                            secondary={
+                              <Typography variant="body2" color="gray">
+                                {item.symbol}
+                              </Typography>
+                            }
+                          />
+                        </Box>
                       </Box>
-                    </Box>
 
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1.5, // Space between elements
-                      }}>
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography variant="body2" fontWeight="500">
-                          ${formatCustomPrice(Number(item.price))}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          color={Number(item.changeRate24h) > 0 ? 'success.main' : 'error.main'}>
-                          {Number(item.changeRate24h) > 0 ? '+' : ''}
-                          {Number(item.changeRate24h).toFixed(2)}%
-                        </Typography>
-                      </Box>
                       <Box
                         sx={{
-                          height: '72px',
-                          flex: 1,
                           display: 'flex',
-                          flexDirection: 'column', // Stack the children vertically
-                          alignItems: 'center', // Center align horizontally
+                          alignItems: 'center',
+                          gap: 1.5, // Space between elements
                         }}>
-                        <IconButton
+                        <Box sx={{ textAlign: 'right' }}>
+                          <Typography variant="body2" fontWeight="500">
+                            ${formatCustomPrice(Number(item.price))}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color={Number(item.changeRate24h) > 0 ? 'success.main' : 'error.main'}>
+                            {Number(item.changeRate24h) > 0 ? '+' : ''}
+                            {Number(item.changeRate24h).toFixed(2)}%
+                          </Typography>
+                        </Box>
+                        <Box
                           sx={{
-                            scale: 0.9,
-                          }}
-                          edge="end"
-                          onClick={() => removeCoin(item.url, item.name, item.isPriority)}>
-                          <DeleteIcon />
-                        </IconButton>
-                        <IconButton
-                          edge="end"
-                          color={thresholdList.find(i => i.id === item.guidID)?.active ? 'success' : 'error'}>
-                          {thresholdList.find(i => i.id === item.guidID)?.active ? (
-                            <NotificationsActiveIcon />
-                          ) : (
-                            <NotificationsOffIcon />
-                          )}
-                        </IconButton>
-                      </Box>
-                    </Box>
-                  </Box>
-                  {item.isPriority === false && setting.changeRate && (
-                    <Box>
-                      <ChangeRateCard
-                        changeRate24h={item.changeRate24h}
-                        changeRate5m={item.changeRate5m}
-                        changeRate1h={item.changeRate1h}
-                        changeRate6h={item.changeRate6h}
-                      />
-                    </Box>
-                  )}
-                </ListItem>
-                <Collapse in={expandedItem === item.guidID} timeout="auto" unmountOnExit>
-                  <Box
-                    sx={{
-                      padding: 2,
-                      borderRadius: 1,
-                      margin: 1,
-                    }}>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                      Notification Threshold for {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
-                    </Typography>
-
-                    {/* First Row: Limits and Price */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginBottom: 2 }}>
-                      {/* Lower Limit Input */}
-                      <TextField
-                        disabled={threshold.active}
-                        label="Lower Limit"
-                        type="text"
-                        fullWidth
-                        value={threshold?.lower?.toString() || ''}
-                        size="small"
-                        sx={{
-                          flex: 1,
-                          '& .MuiInputBase-input': {
-                            textAlign: 'left', // Right-align the text in the input field
-                          },
-                          '& .MuiInputLabel-root': {
-                            color: '#007BFF', // Default label color
-                          },
-                          '& .MuiOutlinedInput-root': {
-                            '& fieldset': {
-                              borderColor: '#007BFF', // Default border color
-                            },
-                          },
-                          '& .MuiInputLabel-root.Mui-disabled': {
-                            color: 'grey.400', // Label color when disabled
-                          },
-                          '& .MuiInputBase-input.Mui-disabled': {
-                            color: 'grey.500', // Set text color for disabled state
-                          },
-                          '& .MuiOutlinedInput-notchedOutline': {
-                            borderColor: 'grey.300', // Optional: Customize border color for disabled state
-                          },
-                        }}
-                        onChange={event => {
-                          const newValue = event.target.value;
-                          updateLowerThreshold(newValue, item); // Update the lower threshold
-                          checkForAlerts(item, newValue, 'lower'); // Trigger alert check immediately
-                        }}
-                      />
-
-                      {/* Upper Limit Input */}
-                      <TextField
-                        disabled={threshold.active}
-                        label="Upper Limit"
-                        type="text"
-                        value={threshold?.upper?.toString() || ''}
-                        fullWidth
-                        size="small"
-                        sx={{
-                          flex: 1,
-                          '& .MuiInputBase-input': {
-                            textAlign: 'right', // Right-align the text in the input field
-                          },
-                          '& .MuiInputLabel-root': {
-                            color: '#007BFF', // Default label color
-                          },
-                          '& .MuiOutlinedInput-root': {
-                            '& fieldset': {
-                              borderColor: '#007BFF', // Default border color
-                            },
-                          },
-                          '& .MuiInputLabel-root.Mui-disabled': {
-                            color: 'grey.400', // Label color when disabled
-                          },
-                        }}
-                        onChange={event => {
-                          const newValue = event.target.value;
-                          updateUpperThreshold(newValue, item); // Update the upper threshold
-                          checkForAlerts(item, newValue, 'upper'); // Trigger alert check immediately
-                        }}
-                      />
-                    </Box>
-
-                    {/* Second Row: Percentage Buttons */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      {/* Lower Limit Buttons */}
-                      <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        {[10, 20, 50].map(percent => (
-                          <Button
-                            disabled={threshold.active}
-                            key={percent}
-                            variant="outlined"
-                            size="small"
-                            onClick={() => {
-                              if (Number(item.price) < 0.00001) {
-                                const adjustedPrice = (Number(item.price) * (1 - percent / 100)).toFixed(18); // Ensure 18 decimal precision
-                                updateLowerThreshold(adjustedPrice, item); // Pass as a string to avoid scientific notation
-                              } else {
-                                const adjustedPrice = (Number(item.price) * (1 - percent / 100)).toFixed(4); // Ensure 18 decimal precision
-                                updateLowerThreshold(adjustedPrice.toString(), item); // Pass as a string to avoid scientific notation
-                              }
-                            }}>
-                            -{percent}%
-                          </Button>
-                        ))}
-                      </Box>
-
-                      {/* Spacer */}
-
-                      <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            textAlign: 'center',
-                            minWidth: 80, // Adjust width as needed
-                            padding: 1,
-                            border: '1px solid #ccc',
-                            borderRadius: 1,
-                            fontWeight: 'bold',
-                            marginBottom: '10px',
-                            width: '-webkit-fill-available',
+                            height: '72px',
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column', // Stack the children vertically
+                            alignItems: 'center', // Center align horizontally
                           }}>
-                          ${formatCustomPrice(Number(item.price))}
-                        </Typography>
-                        <Button
-                          variant="contained"
-                          color={threshold?.active ? 'success' : 'error'}
-                          startIcon={threshold?.active ? <NotificationsActiveIcon /> : <NotificationsOffIcon />}
-                          onClick={() => toggleNotification()} // Function to toggle active state
-                          sx={{
-                            '& .MuiButton-startIcon': { marginRight: '0px', marginLeft: '0px' },
-                            textTransform: 'none', // Keep the text case as is
-                            padding: '8px 16px',
-                            width: '-webkit-fill-available',
-                          }}></Button>
-                      </Box>
-
-                      {/* Upper Limit Buttons */}
-                      <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                        {[10, 20, 50].map(percent => (
-                          <Button
-                            disabled={threshold.active}
-                            key={percent}
-                            variant="outlined"
-                            size="small"
-                            onClick={() => {
-                              if (Number(item.price) < 0.00001) {
-                                const adjustedPrice = (Number(item.price) * (1 + percent / 100)).toFixed(18); // Ensure 18 decimal precision
-                                updateUpperThreshold(adjustedPrice, item); // Pass as a string to avoid scientific notation
-                              } else {
-                                const adjustedPrice = (Number(item.price) * (1 + percent / 100)).toFixed(4); // Ensure 18 decimal precision
-                                updateUpperThreshold(adjustedPrice.toString(), item); // Pass as a string to avoid scientific notation
-                              }
-                            }}>
-                            +{percent}%
-                          </Button>
-                        ))}
+                          <IconButton
+                            sx={{
+                              scale: 0.9,
+                            }}
+                            edge="end"
+                            onClick={() => removeCoin(item.url, item.name, item.isPriority)}>
+                            <DeleteIcon />
+                          </IconButton>
+                          <IconButton
+                            edge="end"
+                            color={thresholdList.find(i => i.id === item.guidID)?.active ? 'success' : 'error'}>
+                            {thresholdList.find(i => i.id === item.guidID)?.active ? (
+                              <NotificationsActiveIcon />
+                            ) : (
+                              <NotificationsOffIcon />
+                            )}
+                          </IconButton>
+                        </Box>
                       </Box>
                     </Box>
-
-                    {alertMessage && (
-                      <Box p={1} mb={2} border="1px solid" borderColor="error.main" borderRadius={2}>
-                        <Typography variant="body2" color="error">
-                          {alertMessage}
-                        </Typography>
+                    {item.isPriority === false && setting.changeRate && (
+                      <Box>
+                        <ChangeRateCard
+                          changeRate24h={item.changeRate24h}
+                          changeRate5m={item.changeRate5m}
+                          changeRate1h={item.changeRate1h}
+                          changeRate6h={item.changeRate6h}
+                        />
                       </Box>
                     )}
-                  </Box>
-                </Collapse>
-                <Divider />
-              </React.Fragment>
-            ))}
-          </List>
-          <Box display="flex" justifyContent="center" alignItems="center" mt={2} gap={2}>
-            <Button
-              variant="outlined"
-              size="small"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => prev - 1)}>
-              Previous
-            </Button>
-            <Typography variant="body2">
-              Page {currentPage} of {totalPages}
-            </Typography>
-            <Button
-              variant="outlined"
-              size="small"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(prev => prev + 1)}>
-              Next
-            </Button>
-          </Box>
+                  </ListItem>
+                  <Collapse in={expandedItem === item.guidID} timeout="auto" unmountOnExit>
+                    <Box
+                      sx={{
+                        padding: 2,
+                        borderRadius: 1,
+                        margin: 1,
+                      }}>
+                      <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                        Notification Threshold for {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
+                      </Typography>
+
+                      {/* First Row: Limits and Price */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginBottom: 2 }}>
+                        {/* Lower Limit Input */}
+                        <TextField
+                          disabled={threshold.active}
+                          label="Lower Limit"
+                          type="text"
+                          fullWidth
+                          value={threshold?.lower?.toString() || ''}
+                          size="small"
+                          sx={{
+                            flex: 1,
+                            '& .MuiInputBase-input': {
+                              textAlign: 'left', // Right-align the text in the input field
+                            },
+                            '& .MuiInputLabel-root': {
+                              color: '#007BFF', // Default label color
+                            },
+                            '& .MuiOutlinedInput-root': {
+                              '& fieldset': {
+                                borderColor: '#007BFF', // Default border color
+                              },
+                            },
+                            '& .MuiInputLabel-root.Mui-disabled': {
+                              color: 'grey.400', // Label color when disabled
+                            },
+                            '& .MuiInputBase-input.Mui-disabled': {
+                              color: 'grey.500', // Set text color for disabled state
+                            },
+                            '& .MuiOutlinedInput-notchedOutline': {
+                              borderColor: 'grey.300', // Optional: Customize border color for disabled state
+                            },
+                          }}
+                          onChange={event => {
+                            const newValue = event.target.value;
+                            updateLowerThreshold(newValue, item); // Update the lower threshold
+                            checkForAlerts(item, newValue, 'lower'); // Trigger alert check immediately
+                          }}
+                        />
+
+                        {/* Upper Limit Input */}
+                        <TextField
+                          disabled={threshold.active}
+                          label="Upper Limit"
+                          type="text"
+                          value={threshold?.upper?.toString() || ''}
+                          fullWidth
+                          size="small"
+                          sx={{
+                            flex: 1,
+                            '& .MuiInputBase-input': {
+                              textAlign: 'right', // Right-align the text in the input field
+                            },
+                            '& .MuiInputLabel-root': {
+                              color: '#007BFF', // Default label color
+                            },
+                            '& .MuiOutlinedInput-root': {
+                              '& fieldset': {
+                                borderColor: '#007BFF', // Default border color
+                              },
+                            },
+                            '& .MuiInputLabel-root.Mui-disabled': {
+                              color: 'grey.400', // Label color when disabled
+                            },
+                          }}
+                          onChange={event => {
+                            const newValue = event.target.value;
+                            updateUpperThreshold(newValue, item); // Update the upper threshold
+                            checkForAlerts(item, newValue, 'upper'); // Trigger alert check immediately
+                          }}
+                        />
+                      </Box>
+
+                      {/* Second Row: Percentage Buttons */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        {/* Lower Limit Buttons */}
+                        <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          {[10, 20, 50].map(percent => (
+                            <Button
+                              disabled={threshold.active}
+                              key={percent}
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                if (Number(item.price) < 0.00001) {
+                                  const adjustedPrice = (Number(item.price) * (1 - percent / 100)).toFixed(18); // Ensure 18 decimal precision
+                                  updateLowerThreshold(adjustedPrice, item); // Pass as a string to avoid scientific notation
+                                } else {
+                                  const adjustedPrice = (Number(item.price) * (1 - percent / 100)).toFixed(4); // Ensure 18 decimal precision
+                                  updateLowerThreshold(adjustedPrice.toString(), item); // Pass as a string to avoid scientific notation
+                                }
+                              }}>
+                              -{percent}%
+                            </Button>
+                          ))}
+                        </Box>
+
+                        {/* Spacer */}
+
+                        <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              textAlign: 'center',
+                              minWidth: 80, // Adjust width as needed
+                              padding: 1,
+                              border: '1px solid #ccc',
+                              borderRadius: 1,
+                              fontWeight: 'bold',
+                              marginBottom: '10px',
+                              width: '-webkit-fill-available',
+                            }}>
+                            ${formatCustomPrice(Number(item.price))}
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            color={threshold?.active ? 'success' : 'error'}
+                            startIcon={threshold?.active ? <NotificationsActiveIcon /> : <NotificationsOffIcon />}
+                            onClick={() => toggleNotification()} // Function to toggle active state
+                            sx={{
+                              '& .MuiButton-startIcon': { marginRight: '0px', marginLeft: '0px' },
+                              textTransform: 'none', // Keep the text case as is
+                              padding: '8px 16px',
+                              width: '-webkit-fill-available',
+                            }}></Button>
+                        </Box>
+
+                        {/* Upper Limit Buttons */}
+                        <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          {[10, 20, 50].map(percent => (
+                            <Button
+                              disabled={threshold.active}
+                              key={percent}
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                if (Number(item.price) < 0.00001) {
+                                  const adjustedPrice = (Number(item.price) * (1 + percent / 100)).toFixed(18); // Ensure 18 decimal precision
+                                  updateUpperThreshold(adjustedPrice, item); // Pass as a string to avoid scientific notation
+                                } else {
+                                  const adjustedPrice = (Number(item.price) * (1 + percent / 100)).toFixed(4); // Ensure 18 decimal precision
+                                  updateUpperThreshold(adjustedPrice.toString(), item); // Pass as a string to avoid scientific notation
+                                }
+                              }}>
+                              +{percent}%
+                            </Button>
+                          ))}
+                        </Box>
+                      </Box>
+
+                      {alertMessage && (
+                        <Box p={1} mb={2} border="1px solid" borderColor="error.main" borderRadius={2}>
+                          <Typography variant="body2" color="error">
+                            {alertMessage}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Collapse>
+                  <Divider />
+                </React.Fragment>
+              ))}
+            </List>
+
+            <Box display="flex" justifyContent="center" alignItems="center" mt={2} gap={2}>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}>
+                Previous
+              </Button>
+              <Typography variant="body2">
+                Page {currentPage} of {totalPages}
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => prev + 1)}>
+                Next
+              </Button>
+            </Box>
+          </CustomTabPanel>
+          <CustomTabPanel value={value} index={1}>
+            Item Two
+          </CustomTabPanel>
           <Box mt="auto" p={2} textAlign="center" borderTop="1px solid #ccc">
             <Button variant="contained" onClick={toggleModal}>
               Open Search | Ctrl + /

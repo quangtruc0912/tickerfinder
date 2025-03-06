@@ -42,9 +42,29 @@ const Options = () => {
           }}>
           Settings
         </Typography>
-        <ToggleButton>Toggle DARK / LIGHT Theme</ToggleButton>
+        <ToggleThemeButton>Toggle DARK / LIGHT Theme</ToggleThemeButton>
         <Divider sx={{ width: '100%', margin: '1.5rem 0' }} /> {/* Divider between sections */}
         <Box sx={{ padding: '2rem' }}>
+          {/* Toggle Change Rate Button */}
+          <Box sx={{ display: 'flex', alignItems: 'center', marginTop: '1rem' }}>
+            <Typography variant="h6" sx={{ color: isLight ? 'black' : 'white', marginRight: '1rem' }}>
+              Change Rate:
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => settingStorage.toggleChangeRate()}
+              sx={{
+                backgroundColor: setting.changeRate ? 'green' : 'red',
+                color: 'white',
+                fontWeight: 'bold',
+                '&:hover': {
+                  backgroundColor: setting.changeRate ? 'darkgreen' : 'darkred',
+                },
+              }}>
+              {setting.changeRate ? 'ON' : 'OFF'}
+            </Button>
+          </Box>
+
           {/* Text and Color Picker in Same Line */}
           <Box sx={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
             <Typography variant="h6" sx={{ color: isLight ? 'black' : 'white', marginRight: '1rem' }}>
@@ -95,7 +115,29 @@ const Options = () => {
               />
             </Box>
           </Box>
-
+          {/* ERC-20 Address Input */}
+          <Box sx={{ display: 'flex', alignItems: 'center', marginTop: '1rem' }}>
+            <Typography variant="h6" sx={{ color: isLight ? 'black' : 'white', marginRight: '1rem' }}>
+              ERC-20 Address:
+            </Typography>
+            <TextField
+              type="text"
+              variant="outlined"
+              placeholder="Enter ERC-20 contract address"
+              value={setting.address}
+              onChange={e => settingStorage.setAddress(e.target.value)}
+              sx={{
+                flex: 1, // Makes the input take available space
+                minWidth: '250px', // Ensures proper width
+                backgroundColor: 'transparent',
+                border: '1px solid',
+                borderColor: isLight ? 'black' : 'white',
+                '& .MuiInputBase-input': {
+                  color: isLight ? 'black' : 'white',
+                },
+              }}
+            />
+          </Box>
           {/* You can add any other content below */}
         </Box>
       </Box>
@@ -127,7 +169,7 @@ const Options = () => {
   );
 };
 
-const ToggleButton = (props: ComponentPropsWithoutRef<'button'>) => {
+const ToggleThemeButton = (props: ComponentPropsWithoutRef<'button'>) => {
   const theme = useStorage(exampleThemeStorage);
   return (
     <button

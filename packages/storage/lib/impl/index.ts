@@ -7,3 +7,5 @@ export * from './SettingStorage';
 export * from './CoinGeckoStorage';
 
 export * from './KuCoinStorage';
+
+export * from './TokenBalanceStorage';

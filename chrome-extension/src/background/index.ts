@@ -8,6 +8,7 @@ import {
   CoinGeckoContractAddress,
   KuCoinData,
   KuCoinStorage,
+  settingStorage,
 } from '@extension/storage';
 let isSidePanelOpen = false; // Track whether the side panel is open
 const INIT = ['BTC', 'SOL', 'ETH'];
@@ -191,68 +192,82 @@ const notifyUser = (triggered: WatchlistItem[]) => {
   );
 };
 
-chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
-  if (message.type === 'FETCH_KUCOIN') {
-    const ticker = message.ticker;
+chrome.runtime.onMessage.addListener(
+  (
+    message: { type: string; ticker?: string; id?: string; tab?: chrome.tabs.Tab },
+    sender,
+    senderResponse: (response: any) => void,
+  ) => {
+    const { type, ticker, id, tab } = message;
 
-    fetch(`https://api.kucoin.com/api/v1/market/stats?symbol=${ticker}-USDT&timestamp=${Date.now()}`)
-      .then(res => {
-        return res.json();
-      })
-      .then(res => {
-        senderResponse(res);
-      });
+    switch (type) {
+      case 'FETCH_KUCOIN':
+        return fetchKucoinData(ticker!, senderResponse);
 
-    return true; // Keep the message channel open for asynchronous response
-  } else if (message.type === 'GET_WATCHLIST') {
-    senderResponse(watchlist);
-    return true;
-  } else if (message.type === 'GET_THRESHOLD') {
-    const id = message.id;
-    const result = useThresholdStorage
-      .getThresholdFirstOrDefault(id)
-      .then(res => {
-        return res;
-      })
-      .then(res => {
-        senderResponse(res);
-      });
-    return true;
-  } else if (message.type === 'open_side_panel') {
-    (async () => {
-      if (isSidePanelOpen) {
-        isSidePanelOpen = false;
-        chrome.sidePanel.setOptions({
-          tabId: message?.tab.id,
-          path: 'side-panel/index.html',
-          enabled: false, // Disables the side panel
-        });
-      } else {
-        isSidePanelOpen = true;
-        await chrome.sidePanel.open({ tabId: message.tab.id });
-        chrome.sidePanel.setOptions({
-          tabId: message?.tab.id,
-          path: 'side-panel/index.html',
-          enabled: true,
-        });
-      }
-    })();
-  } else if (message.type === 'open_options') {
-    chrome.runtime.openOptionsPage();
-  } else if (message.type === 'COINGECKO_IMAGE') {
-    const id = message.id;
-    fetch(
-      `https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false`,
-    )
-      .then(res => {
-        return res.json();
-      })
-      .then(res => {
-        senderResponse(res);
-      });
-    return true; // Keep the message channel open for asynchronous response
+      case 'GET_WATCHLIST':
+        senderResponse(watchlist);
+        break;
+
+      case 'GET_THRESHOLD':
+        return fetchThreshold(id!, senderResponse);
+
+      case 'open_side_panel':
+        (async () => {
+          chrome.sidePanel.setOptions({
+            tabId: tab?.id,
+            path: 'side-panel/index.html',
+            enabled: !isSidePanelOpen, // Disables the side panel
+          });
+        })();
+        break;
+
+      case 'open_options':
+        chrome.runtime.openOptionsPage();
+        break;
+
+      case 'COINGECKO_IMAGE':
+        return fetchCoingeckoImage(id!, senderResponse);
+    }
+  },
+);
+
+async function fetchKucoinData(ticker: string, senderResponse: (response: any) => void) {
+  try {
+    const response = await fetch(
+      `https://api.kucoin.com/api/v1/market/stats?symbol=${ticker}-USDT&timestamp=${Date.now()}`,
+    );
+    const data = await response.json();
+    senderResponse(data);
+  } catch (error) {
+    senderResponse({ error: 'Failed to fetch KuCoin data' });
   }
-});
+  return true; // Keep the message channel open for async response
+}
+
+// Fetch Threshold from storage
+async function fetchThreshold(id: string, senderResponse: (response: any) => void) {
+  try {
+    const result = await useThresholdStorage.getThresholdFirstOrDefault(id);
+    senderResponse(result);
+  } catch (error) {
+    senderResponse({ error: 'Failed to fetch threshold' });
+  }
+  return true;
+}
+
+// Fetch Coingecko Image Data
+async function fetchCoingeckoImage(id: string, senderResponse: (response: any) => void) {
+  try {
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false`,
+    );
+    const data = await response.json();
+    senderResponse(data);
+  } catch (error) {
+    senderResponse({ error: 'Failed to fetch Coingecko image' });
+  }
+  return true;
+}
 
 chrome.notifications.onClicked.addListener((notificationId: string) => {
   const url = notificationUrls[notificationId];
@@ -373,9 +388,10 @@ chrome.runtime.onInstalled.addListener(async details => {
     chrome.storage.local.remove('KUCOINDATA', () => {
       console.log('Key KUCOINDATA removed from local storage.');
     });
-    const response = await fetch(chrome.runtime.getURL('content/kucoin_coingecko_resolved.json'));
-    const data: KuCoinData[] = await response.json();
-    KuCoinStorage.setData(data);
+    const fileResponse = await fetch(chrome.runtime.getURL('content/kucoin_coingecko_resolved.json'));
+    const combinedData: KuCoinData[] = await fileResponse.json();
+    KuCoinStorage.setData(combinedData);
+    settingStorage.ensureSetting();
   }
 });
 
