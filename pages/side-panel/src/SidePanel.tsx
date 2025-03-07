@@ -1,6 +1,13 @@
 import '@src/SidePanel.css';
 import { withErrorBoundary, withSuspense, useStorage } from '@extension/shared';
-import { Threshold, useWatchListStorage, WatchlistItem, useThresholdStorage, settingStorage } from '@extension/storage';
+import {
+  Threshold,
+  useWatchListStorage,
+  WatchlistItem,
+  useThresholdStorage,
+  settingStorage,
+  tokenBalanceStorage,
+} from '@extension/storage';
 import React, { useState, useEffect } from 'react';
 import {
   Drawer,
@@ -23,6 +30,7 @@ import { Delete as DeleteIcon } from '@mui/icons-material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import ChangeRateCard from './ChangeRateCard';
+import CoinBalanceItem from './CoinBalanceItem';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
 interface TabPanelProps {
@@ -85,6 +93,7 @@ const SidePanel = () => {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [value, setValue] = React.useState(0);
+  const tokenBalance = useStorage(tokenBalanceStorage);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // Define the number of items per page
@@ -250,7 +259,7 @@ const SidePanel = () => {
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
               <Tab label="Watch List" {...a11yProps(0)} />
-              <Tab label="Wallet" {...a11yProps(1)} />
+              <Tab label="Wallet (..76eb)" {...a11yProps(1)} />
             </Tabs>
           </Box>
           <Divider />
@@ -261,35 +270,43 @@ const SidePanel = () => {
                   <ListItem
                     alignItems="center"
                     onClick={() => toggleExpandItem(item.guidID)} // Expand/Collapse on click
-                    sx={{ display: 'block' }}>
+                    sx={{ display: 'block', padding: '0px 0px' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '-webkit-fill-available' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <ListItemAvatar style={{ position: 'relative' }}>
-                          <Avatar
-                            src={
-                              item.isPriority
-                                ? item?.imageUrl.startsWith('https')
-                                  ? item?.imageUrl
-                                  : chrome.runtime.getURL(item?.imageUrl)
-                                : item?.imageUrl
-                            }
-                            alt={item.symbol}
-                          />
-                          <IconButton
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              right: 0,
-                              backgroundColor: 'white', // Optional: To make the button stand out
-                              padding: 4,
-                            }}
-                            size="small"
-                            onClick={event => {
-                              event.stopPropagation();
-                              handleRedirect(item);
-                            }}>
-                            <OpenInNewIcon fontSize="small" sx={{ fontSize: 10 }} />
-                          </IconButton>
+                        <ListItemAvatar style={{ position: 'relative', minWidth: 40 }}>
+                          {/* Wrapper to ensure proper positioning */}
+                          <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <Avatar
+                              src={
+                                item.isPriority
+                                  ? item?.imageUrl.startsWith('https')
+                                    ? item?.imageUrl
+                                    : chrome.runtime.getURL(item?.imageUrl)
+                                  : item?.imageUrl
+                              }
+                              alt={item.symbol}
+                              sx={{ width: 40, height: 40 }}
+                            />
+
+                            {/* IconButton overlay */}
+                            <IconButton
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                right: 0,
+                                backgroundColor: 'white', // Optional: Helps visibility
+                                padding: 4,
+                                zIndex: 2, // Higher than Avatar
+                                boxShadow: '0px 2px 5px rgba(0,0,0,0.2)', // Optional: Adds slight elevation
+                              }}
+                              size="small"
+                              onClick={event => {
+                                event.stopPropagation();
+                                handleRedirect(item);
+                              }}>
+                              <OpenInNewIcon fontSize="small" sx={{ fontSize: 10 }} />
+                            </IconButton>
+                          </div>
                         </ListItemAvatar>
                         <Box sx={{ marginLeft: 1 }}>
                           <ListItemText
@@ -559,7 +576,9 @@ const SidePanel = () => {
             </Box>
           </CustomTabPanel>
           <CustomTabPanel value={value} index={1}>
-            Item Two
+            {tokenBalance.map((token, index) => (
+              <CoinBalanceItem key={index} item={token} />
+            ))}
           </CustomTabPanel>
           <Box mt="auto" p={2} textAlign="center" borderTop="1px solid #ccc">
             <Button variant="contained" onClick={toggleModal}>

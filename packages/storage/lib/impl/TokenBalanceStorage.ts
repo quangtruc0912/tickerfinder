@@ -15,11 +15,20 @@ interface Token {
   volume_24h: string;
 }
 
-interface TokenData {
+export interface TokenBalanceData {
   token: Token;
   token_id: string | null;
   token_instance: string | null;
   value: string;
+}
+
+export function extendTokenBalance(data: TokenBalanceData) {
+  const normalizedBalance = Number(data.value) / 10 ** Number(data.token.decimals);
+  return {
+    ...data,
+    normalizedBalance,
+    totalValue: normalizedBalance * Number(data.token.exchange_rate),
+  };
 }
 
 const TOKENBALANCE_KEY = 'TOKENBALANCE';
@@ -27,19 +36,19 @@ const TOKENBALANCE_KEY = 'TOKENBALANCE';
 //clear stuff
 // chrome.storage.local.clear();
 
-type ITokenBalanceStorage = BaseStorage<TokenData[]> & {
-  addTokenBalance: (item: TokenData) => Promise<void>;
-  updateTokensBalance: (item: TokenData[]) => Promise<void>;
+type ITokenBalanceStorage = BaseStorage<TokenBalanceData[]> & {
+  addTokenBalance: (item: TokenBalanceData) => Promise<void>;
+  updateTokensBalance: (item: TokenBalanceData[]) => Promise<void>;
   removeFromTokenBalance: (address: string) => Promise<void>;
-  getTokenBalanace: () => Promise<TokenData[]>;
+  getTokenBalanace: () => Promise<TokenBalanceData[]>;
 };
 
-const tokenBalanceStorage = createStorage<TokenData[]>(TOKENBALANCE_KEY, [], {
+const TokenBalanceStorage = createStorage<TokenBalanceData[]>(TOKENBALANCE_KEY, [], {
   liveUpdate: true,
 });
 
-export const useTokenBalanceStorage: ITokenBalanceStorage = {
-  ...tokenBalanceStorage,
+export const tokenBalanceStorage: ITokenBalanceStorage = {
+  ...TokenBalanceStorage,
   addTokenBalance: async item => {
     const currentList = await tokenBalanceStorage.get();
 
@@ -51,13 +60,16 @@ export const useTokenBalanceStorage: ITokenBalanceStorage = {
   },
   updateTokensBalance: async item => {
     try {
-      const currentList = ((await tokenBalanceStorage.get()) as TokenData[]) || [];
+      const currentList = ((await tokenBalanceStorage.get()) as TokenBalanceData[]) || [];
 
-      const newTokenAddresses = new Set(item.map(token => token.token.address));
+      // Filter out tokens where exchangeRate is null
+      const filteredItems = item.filter(token => token.token.exchange_rate !== null);
+
+      const newTokenAddresses = new Set(filteredItems.map(token => token.token.address));
 
       const currentMap = new Map(currentList.map(token => [token.token.address, token]));
 
-      for (const newToken of item) {
+      for (const newToken of filteredItems) {
         const tokenAddress = newToken.token.address;
 
         if (currentMap.has(tokenAddress)) {
@@ -77,7 +89,7 @@ export const useTokenBalanceStorage: ITokenBalanceStorage = {
 
       await tokenBalanceStorage.set(updatedList);
 
-      console.log('Watchlist successfully updated!', updatedList);
+      console.log('Token balance successfully updated!', updatedList);
     } catch (error) {
       console.error('Error updating tokens balance:', error);
     }

@@ -17,6 +17,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import BuySellChart from './BuySellCharts';
 import React from 'react';
+
 function numberFormat(num: number, options?: any) {
   let temp = 2;
 
@@ -40,6 +41,32 @@ function numberFormat(num: number, options?: any) {
   };
 
   return new Intl.NumberFormat('en-US', { ...defaultOptions, ...options }).format(num);
+}
+
+function formatCustomPrice(price: number): string {
+  if (price === undefined || price === 0) {
+    return '0';
+  }
+
+  // Ensure the price is represented as a fixed-point number string
+  const priceString = price.toFixed(20); // Use a sufficiently large precision
+  const [integerPart, decimalPart] = priceString.split('.');
+
+  if (!decimalPart) {
+    // If no decimal part, return as is
+    return priceString;
+  }
+
+  const zerosCount = decimalPart.match(/^0+/)?.[0]?.length || 0;
+
+  // Apply formatting only if there are more than 4 leading zeros
+  if (zerosCount > 4 && integerPart == '0') {
+    const significantDigits = decimalPart.slice(zerosCount).replace(/0+$/, ''); // Remove trailing zeros
+    return `0.0{${zerosCount}}${significantDigits}`;
+  }
+
+  // Otherwise, return the price as a normal decimal without trailing zeros
+  return parseFloat(priceString).toString(); // Remove trailing zeros from normal decimals
 }
 
 const Item = styled(Paper)(({ theme }) => ({
@@ -93,7 +120,7 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
   const CoinGeckoIcon = 'content/coingecko.svg'; // Replace with actual path
   const DexscreenerIcon = 'content/dexscreener.svg';
 
-  const price = useMemo(() => numberFormat(USD), [USD]);
+  const price = useMemo(() => formatCustomPrice(USD), [USD]);
   const marketCap = useMemo(
     () =>
       numberFormat(row.marketCap, {

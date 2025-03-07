@@ -9,12 +9,16 @@ import {
   KuCoinData,
   KuCoinStorage,
   settingStorage,
+  tokenBalanceStorage,
 } from '@extension/storage';
 let isSidePanelOpen = false; // Track whether the side panel is open
 const INIT = ['BTC', 'SOL', 'ETH'];
 
 const INTERVAL = 5000;
+
+const BLOCKSCOUTINTERVAL = 10000; // 10sec
 const COINGECKOINTERVAL = 3600000; // 1 HOUR
+
 let watchlist: WatchlistItem[] = [];
 const notificationUrls: Record<string, string> = {};
 
@@ -470,7 +474,19 @@ const fetchCoinGeckoData = async () => {
   coinGeckoStorage.setContractAddress(contractAddresses);
 };
 
+const fetchBlockScoutData = async () => {
+  const setting = await settingStorage.getSetting();
+  if (setting.address === '') return;
+  const url = `https://eth.blockscout.com/api/v2/addresses/${setting.address}/token-balances`;
+  const response = await fetch(url);
+
+  let data = await response.json();
+  console.log(data);
+  tokenBalanceStorage.updateTokensBalance(data);
+};
+
 setInterval(fetchData, INTERVAL);
 
 fetchCoinGeckoData();
 setInterval(fetchCoinGeckoData, COINGECKOINTERVAL);
+setInterval(fetchBlockScoutData, BLOCKSCOUTINTERVAL);
