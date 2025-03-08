@@ -1,6 +1,6 @@
 import { Avatar, Box, Typography } from '@mui/material';
 import React from 'react';
-import { TokenBalanceData, extendTokenBalance } from '@extension/storage';
+import { TokenBalanceData } from '@extension/storage';
 
 interface CoinItemProps {
   item: TokenBalanceData;
@@ -54,7 +54,8 @@ function formatTokenValue(value: number): string {
 }
 
 const CoinBalanceItem: React.FC<CoinItemProps> = props => {
-  const tokenBalance = extendTokenBalance(props.item);
+  const normalizedBalance = Number(props.item.value) / 10 ** Number(props.item.token.decimals);
+  const tokenCoinPrice = normalizedBalance * Number(props.item.token_cex.exchange_rate);
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', height: '72px' }}>
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -64,7 +65,7 @@ const CoinBalanceItem: React.FC<CoinItemProps> = props => {
             {props.item.token.name.length > 10 ? `${props.item.token.name.slice(0, 10)}...` : props.item.token.name}
           </Typography>
           <Typography variant="body2" color="gray">
-            {formatTokenValue(tokenBalance.normalizedBalance)} {props.item.token.symbol}
+            {formatTokenValue(normalizedBalance)} {props.item.token.symbol}
           </Typography>
         </Box>
       </Box>
@@ -76,15 +77,14 @@ const CoinBalanceItem: React.FC<CoinItemProps> = props => {
         }}>
         <Box sx={{ textAlign: 'right' }}>
           <Typography variant="body2" fontWeight="500">
-            ${formatCustomPrice(Number(tokenBalance.totalValue))}
+            ${formatCustomPrice(Number(tokenCoinPrice))}
           </Typography>
-          {/* <Typography
-                        variant="caption"
-                        color={Number(item.changeRate24h) > 0 ? 'success.main' : 'error.main'}>
-                        {Number(item.changeRate24h) > 0 ? '+' : ''}
-                        {Number(item.changeRate24h).toFixed(2)}%
-                    </Typography> */}
-          <Typography variant="caption">10%</Typography>
+          <Typography
+            variant="caption"
+            color={Number(props.item.token_cex.change_24h) > 0 ? 'success.main' : 'error.main'}>
+            {Number(props.item.token_cex.change_24h) > 0 ? '+' : ''}
+            {Number(props.item.token_cex.change_24h).toFixed(2)}%
+          </Typography>
         </Box>
       </Box>
     </Box>

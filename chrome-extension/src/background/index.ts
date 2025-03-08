@@ -10,6 +10,7 @@ import {
   KuCoinStorage,
   settingStorage,
   tokenBalanceStorage,
+  TokenBalanceData,
 } from '@extension/storage';
 let isSidePanelOpen = false; // Track whether the side panel is open
 const INIT = ['BTC', 'SOL', 'ETH'];
@@ -20,6 +21,8 @@ const BLOCKSCOUTINTERVAL = 10000; // 10sec
 const COINGECKOINTERVAL = 3600000; // 1 HOUR
 
 let watchlist: WatchlistItem[] = [];
+let tokensBalance: TokenBalanceData[] = [];
+
 const notificationUrls: Record<string, string> = {};
 
 function formatCustomPrice(price: number): string {
@@ -478,15 +481,82 @@ const fetchBlockScoutData = async () => {
   const setting = await settingStorage.getSetting();
   if (setting.address === '') return;
   const url = `https://eth.blockscout.com/api/v2/addresses/${setting.address}/token-balances`;
-  const response = await fetch(url);
+  let response = await fetch(url);
 
-  let data = await response.json();
-  console.log(data);
-  tokenBalanceStorage.updateTokensBalance(data);
+  let data = (await response.json()) as TokenBalanceData[];
+  let updatedList = filterTokensBalance(data);
+  let fetchedList = await fetchCoinsBalanceByDex(updatedList);
+  tokensBalance = fetchedList;
+  tokenBalanceStorage.updateTokensBalance(fetchedList);
 };
 
-setInterval(fetchData, INTERVAL);
+const filterTokensBalance = (data: TokenBalanceData[]) => {
+  // Filter out tokens where exchangeRate is null
+  const filteredItems = data.filter(token => token.token.exchange_rate !== null);
 
+  const newTokenAddresses = new Set(filteredItems.map(token => token.token.address));
+
+  const currentMap = new Map(tokensBalance.map(token => [token.token.address, token]));
+
+  for (const newToken of filteredItems) {
+    const tokenAddress = newToken.token.address;
+
+    if (currentMap.has(tokenAddress)) {
+      currentMap.get(tokenAddress)!.value = newToken.value;
+    } else {
+      currentMap.set(tokenAddress, newToken);
+    }
+  }
+
+  for (const storedTokenAddress of currentMap.keys()) {
+    if (!newTokenAddresses.has(storedTokenAddress)) {
+      currentMap.delete(storedTokenAddress);
+    }
+  }
+
+  const updatedList = Array.from(currentMap.values());
+  return updatedList;
+};
+
+const fetchCoinsBalanceByDex = async (tokenBalance: TokenBalanceData[]) => {
+  const tokenAddresses = tokenBalance.map(item => item.token.address).join(',');
+  const url = `https://api.dexscreener.com/tokens/v1/ethereum/${encodeURIComponent(tokenAddresses)}`;
+
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { 'Cache-Control': 'no-cache' },
+    cache: 'no-store',
+  });
+
+  const data = await res.json();
+  console.log();
+
+  // Ensure token_cex is always present
+  tokenBalance.forEach(token => {
+    if (!token.token_cex) {
+      token.token_cex = { exchange_rate: '0', change_24h: null };
+    }
+  });
+
+  data.forEach((item: any) => {
+    const token = tokenBalance.find(
+      token => token.token.address.toLowerCase() === item.baseToken.address.toLowerCase(),
+    );
+    if (token) {
+      token.token_cex.exchange_rate = item.priceUsd ?? '0'; // Ensure fallback value
+      token.token_cex.change_24h = item.priceChange?.h24 ?? null;
+    }
+  });
+  return tokenBalance;
+};
+
+const fetchTokenBalance = async () => {
+  tokensBalance = await tokenBalanceStorage.get();
+};
+
+fetchTokenBalance();
 fetchCoinGeckoData();
+
+setInterval(fetchData, INTERVAL);
 setInterval(fetchCoinGeckoData, COINGECKOINTERVAL);
 setInterval(fetchBlockScoutData, BLOCKSCOUTINTERVAL);

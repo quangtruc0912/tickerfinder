@@ -14,21 +14,17 @@ interface Token {
   type: string;
   volume_24h: string;
 }
+interface TokenCEX {
+  exchange_rate: string;
+  change_24h: string | null;
+}
 
 export interface TokenBalanceData {
   token: Token;
+  token_cex: TokenCEX;
   token_id: string | null;
   token_instance: string | null;
   value: string;
-}
-
-export function extendTokenBalance(data: TokenBalanceData) {
-  const normalizedBalance = Number(data.value) / 10 ** Number(data.token.decimals);
-  return {
-    ...data,
-    normalizedBalance,
-    totalValue: normalizedBalance * Number(data.token.exchange_rate),
-  };
 }
 
 const TOKENBALANCE_KEY = 'TOKENBALANCE';
@@ -60,36 +56,9 @@ export const tokenBalanceStorage: ITokenBalanceStorage = {
   },
   updateTokensBalance: async item => {
     try {
-      const currentList = ((await tokenBalanceStorage.get()) as TokenBalanceData[]) || [];
+      await tokenBalanceStorage.set(item);
 
-      // Filter out tokens where exchangeRate is null
-      const filteredItems = item.filter(token => token.token.exchange_rate !== null);
-
-      const newTokenAddresses = new Set(filteredItems.map(token => token.token.address));
-
-      const currentMap = new Map(currentList.map(token => [token.token.address, token]));
-
-      for (const newToken of filteredItems) {
-        const tokenAddress = newToken.token.address;
-
-        if (currentMap.has(tokenAddress)) {
-          currentMap.get(tokenAddress)!.value = newToken.value;
-        } else {
-          currentMap.set(tokenAddress, newToken);
-        }
-      }
-
-      for (const storedTokenAddress of currentMap.keys()) {
-        if (!newTokenAddresses.has(storedTokenAddress)) {
-          currentMap.delete(storedTokenAddress);
-        }
-      }
-
-      const updatedList = Array.from(currentMap.values());
-
-      await tokenBalanceStorage.set(updatedList);
-
-      console.log('Token balance successfully updated!', updatedList);
+      console.log('Token balance successfully updated!', item);
     } catch (error) {
       console.error('Error updating tokens balance:', error);
     }
