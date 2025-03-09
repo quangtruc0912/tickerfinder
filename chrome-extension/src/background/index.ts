@@ -484,10 +484,44 @@ const fetchBlockScoutData = async () => {
   let response = await fetch(url);
 
   let data = (await response.json()) as TokenBalanceData[];
+
+  const nativeUrl = `https://eth.blockscout.com/api/v2/addresses/${setting.address}`;
+  let tokenNativeResponse = await fetch(nativeUrl);
+  let nativeTokenData = (await tokenNativeResponse.json()) as any;
+
+  let nativeTokenBalance = await mapTokenBalance(nativeTokenData);
+
   let updatedList = filterTokensBalance(data);
   let fetchedList = await fetchCoinsBalanceByDex(updatedList);
+  fetchedList.push(nativeTokenBalance);
   tokensBalance = fetchedList;
   tokenBalanceStorage.updateTokensBalance(fetchedList);
+};
+
+const mapTokenBalance = async (data: any) => {
+  const watchListNative = watchlist.find(item => item.symbol === 'ETH' && item.name === 'Ethereum');
+  let changeRate = 0;
+  if (watchListNative === undefined) {
+    const url = `https://api.kucoin.com/api/v1/market/stats?symbol=ETH-USDT&timestamp=${Date.now()}`;
+    let response = await fetch(url);
+    let responseData = (await response.json()) as any;
+    changeRate = responseData.data.changeRate * 100;
+  }
+  return {
+    token: {
+      address: '1',
+      name: 'Ethereum',
+      symbol: 'ETH',
+      decimals: '18',
+      exchange_rate: data.exchange_rate,
+      icon_url: chrome.runtime.getURL('content/ETH.svg'),
+    },
+    value: data.coin_balance,
+    token_cex: {
+      exchange_rate: data.exchange_rate,
+      change_24h: watchListNative ? watchListNative.changeRate24h : changeRate,
+    },
+  } as TokenBalanceData;
 };
 
 const filterTokensBalance = (data: TokenBalanceData[]) => {

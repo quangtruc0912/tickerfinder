@@ -30,7 +30,7 @@ import { Delete as DeleteIcon } from '@mui/icons-material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import ChangeRateCard from './ChangeRateCard';
-import CoinBalanceItem from './CoinBalanceItem';
+import CoinBalanceList from './CoinBalanceList';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
 interface TabPanelProps {
@@ -576,9 +576,7 @@ const SidePanel = () => {
             </Box>
           </CustomTabPanel>
           <CustomTabPanel value={value} index={1}>
-            {tokenBalance.map((token, index) => (
-              <CoinBalanceItem key={index} item={token} />
-            ))}
+            <CoinBalanceList tokenBalance={tokenBalance} />
           </CustomTabPanel>
           <Box mt="auto" p={2} textAlign="center" borderTop="1px solid #ccc">
             <Button variant="contained" onClick={toggleModal}>
