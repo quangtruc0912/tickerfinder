@@ -7,6 +7,8 @@ export type Setting = {
   tickerBackgroundColor: string; // Added hexColor property
   address: string;
   coinBalanceLowerThreshold: number;
+  lastFetchWatchList: number;
+  lastFetchCoinBalance: number;
 };
 
 const defaultSetting: Setting = {
@@ -14,6 +16,8 @@ const defaultSetting: Setting = {
   tickerBackgroundColor: '#FFFFFF',
   address: '',
   coinBalanceLowerThreshold: 10,
+  lastFetchCoinBalance: 0,
+  lastFetchWatchList: 0,
 };
 
 function ensureSetting(obj: Partial<Setting>): Setting {
@@ -30,6 +34,8 @@ type SettingStorage = BaseStorage<Setting> & {
   getSetting: () => Promise<Setting>;
   ensureSetting: () => Promise<void>;
   setLowerThreshold: (number: number) => Promise<void>;
+  setLastFetchWatchList: (number: number) => Promise<void>;
+  setLastFetchCoinBalance: (number: number) => Promise<void>;
 };
 
 const storage = createStorage<Setting>(
@@ -76,6 +82,18 @@ export const settingStorage: SettingStorage = {
     await storage.set(currentSetting => ({
       ...currentSetting,
       coinBalanceLowerThreshold: number,
+    }));
+  },
+  setLastFetchCoinBalance: async (number: number) => {
+    await storage.set(currentSetting => ({
+      ...currentSetting,
+      lastFetchCoinBalance: number,
+    }));
+  },
+  setLastFetchWatchList: async (number: number) => {
+    await storage.set(currentSetting => ({
+      ...currentSetting,
+      lastFetchWatchList: number,
     }));
   },
 };

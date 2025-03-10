@@ -155,6 +155,7 @@ const fetchData = async () => {
   useWatchListStorage.set(updatedData);
   watchlist = updatedData;
   checkAlarms(updatedData);
+  settingStorage.setLastFetchWatchList(Date.now());
 };
 
 const checkAlarms = async (data: WatchlistItem[]) => {
@@ -517,6 +518,7 @@ const fetchBlockScoutData = async () => {
   fetchedList.push(nativeTokenBalance);
   tokensBalance = fetchedList;
   tokenBalanceStorage.updateTokensBalance(fetchedList);
+  settingStorage.setLastFetchCoinBalance(Date.now());
 };
 
 const mapTokenBalance = async (data: any) => {

@@ -16,6 +16,10 @@ const CoinBalanceList: React.FC<CoinBalanceListProps> = ({ tokenBalance }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showSmallBalances, setShowSmallBalances] = useState(false); // Toggle for small balances
 
+  const lastFetchTime = setting.lastFetchCoinBalance
+    ? new Date(setting.lastFetchCoinBalance).toLocaleString()
+    : 'Never';
+
   // Return early if there are no token balances
   if (!tokenBalance || tokenBalance.length === 0 || !setting.address) {
     return (
@@ -55,6 +59,11 @@ const CoinBalanceList: React.FC<CoinBalanceListProps> = ({ tokenBalance }) => {
   return (
     <Container>
       {/* Total Portfolio Value */}
+      <Box textAlign="center" my={2}>
+        <Typography variant="body2" color="gray">
+          Last Fetched: {lastFetchTime}
+        </Typography>
+      </Box>
       <Box textAlign="center" my={2}>
         <Typography variant="h6" fontWeight="bold">
           Portfolio: ${totalValue.toFixed(2)}

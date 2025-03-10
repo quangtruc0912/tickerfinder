@@ -238,6 +238,8 @@ const SidePanel = () => {
   const totalPages = Math.ceil(watchlist.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
 
+  const lastFetchTime = setting.lastFetchWatchList ? new Date(setting.lastFetchWatchList).toLocaleString() : 'Never';
+
   return (
     <>
       <Drawer
@@ -287,6 +289,11 @@ const SidePanel = () => {
           </Box>
           <Divider />
           <CustomTabPanel value={value} index={0}>
+            <Box textAlign="center" my={2}>
+              <Typography variant="body2" color="gray">
+                Last Fetched: {lastFetchTime}
+              </Typography>
+            </Box>
             <List>
               {paginatedWatchlist?.map(item => (
                 <React.Fragment key={item.guidID}>
