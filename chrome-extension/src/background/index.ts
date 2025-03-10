@@ -251,7 +251,6 @@ async function fetchKucoinData(ticker: string, senderResponse: (response: any) =
     );
 
     const data = await response.json();
-    console.log(response);
     senderResponse(data);
   } catch (error) {
     senderResponse({ error: 'Failed to fetch KuCoin data' });
@@ -407,8 +406,22 @@ chrome.runtime.onInstalled.addListener(async details => {
     const combinedData: KuCoinData[] = await fileResponse.json();
     KuCoinStorage.setData(combinedData);
     settingStorage.ensureSetting();
+    await DataCorrection();
   }
 });
+
+const DataCorrection = async (): Promise<void> => {
+  let list = await useWatchListStorage.getWatchlist();
+  list.forEach(async element => {
+    if (element.isPriority === true && element.imageUrl?.startsWith('chrome-extension://')) {
+      const contentIndex = element.imageUrl.indexOf('content/');
+      if (contentIndex !== -1) {
+        element.imageUrl = element.imageUrl.substring(contentIndex);
+        await useWatchListStorage.updateWatchlist(element);
+      }
+    }
+  });
+};
 
 chrome.commands.onCommand.addListener(async command => {
   if (command === 'toggle_side_panel') {
@@ -484,7 +497,10 @@ const fetchCoinGeckoData = async () => {
 
 const fetchBlockScoutData = async () => {
   const setting = await settingStorage.getSetting();
-  if (setting.address === '') return;
+  if (setting.address === '') {
+    tokenBalanceStorage.removeAllTokenBalance();
+    return;
+  }
   const url = `https://eth.blockscout.com/api/v2/addresses/${setting.address}/token-balances`;
   let response = await fetch(url);
 
@@ -568,7 +584,6 @@ const fetchCoinsBalanceByDex = async (tokenBalance: TokenBalanceData[]) => {
   });
 
   const data = await res.json();
-  console.log();
 
   // Ensure token_cex is always present
   tokenBalance.forEach(token => {

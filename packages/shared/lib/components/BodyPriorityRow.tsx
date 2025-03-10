@@ -48,8 +48,7 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
   const logo = `content/${row.ticker.toUpperCase()}.svg`;
   const uuid = generateUUID();
   const percent_change24h = Number(row.changeRate);
-  const [logoUrl, setLogoUrl] = useState(chrome.runtime.getURL(`content/${row.ticker.toUpperCase()}.svg`));
-  const finalLogoUrl = useMemo(() => logoUrl, [logoUrl]);
+  const [logoUrl, setLogoUrl] = useState(`content/${row.ticker.toUpperCase()}.svg`);
   const volume_24 = useMemo(
     () =>
       numberFormat(Number(row.volValue), {
@@ -102,12 +101,13 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
 
   useEffect(() => {
     const checkLogo = async () => {
-      const fileUrl = chrome.runtime.getURL(`content/${memoizedRow.ticker.toUpperCase()}.svg`);
+      const dir = `content/${memoizedRow.ticker.toUpperCase()}.svg`;
+      const fileUrl = chrome.runtime.getURL(dir);
 
       try {
-        const response = await fetch(fileUrl);
+        const response = await fetch(dir);
         if (response.ok) {
-          setLogoUrl(prev => (prev === fileUrl ? prev : fileUrl));
+          setLogoUrl(`content/${memoizedRow.ticker.toUpperCase()}.svg`);
         } else {
           throw new Error('File not found');
         }
@@ -231,8 +231,7 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
           },
         })}>
         <Avatar
-          key={finalLogoUrl} // ✅ Forces re-render ONLY if logoUrl actually changes
-          src={finalLogoUrl || chrome.runtime.getURL('content/default-placeholder.svg')}
+          src={chrome.runtime.getURL(logoUrl)}
           sx={{
             width: 50,
             height: 50,

@@ -25,6 +25,7 @@ import {
   Button,
   Tabs,
   Tab,
+  Pagination,
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
@@ -257,9 +258,31 @@ const SidePanel = () => {
         }}>
         <Box p={2} display="flex" flexDirection="column" height="100%">
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
+            <Tabs
+              value={value}
+              onChange={handleChange}
+              aria-label="watchlist and wallet tabs"
+              variant="fullWidth" // Ensures tabs take up full width
+              textColor="primary"
+              indicatorColor="primary"
+              sx={{
+                '& .MuiTabs-indicator': {
+                  height: 4, // Makes the active tab indicator thicker
+                  borderRadius: 2,
+                },
+                '& .MuiTab-root': {
+                  textTransform: 'none', // Keeps text natural (not uppercase)
+                  fontSize: '1rem',
+                  fontWeight: 500,
+                  minHeight: 48,
+                  color: 'text.secondary',
+                  '&.Mui-selected': {
+                    color: 'primary.main',
+                  },
+                },
+              }}>
               <Tab label="Watch List" {...a11yProps(0)} />
-              <Tab label="Wallet (..76eb)" {...a11yProps(1)} />
+              <Tab label={`Wallet (${setting.address?.slice(-4) || '----'})`} {...a11yProps(1)} />
             </Tabs>
           </Box>
           <Divider />
@@ -555,25 +578,17 @@ const SidePanel = () => {
               ))}
             </List>
 
-            <Box display="flex" justifyContent="center" alignItems="center" mt={2} gap={2}>
-              <Button
-                variant="outlined"
-                size="small"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => prev - 1)}>
-                Previous
-              </Button>
-              <Typography variant="body2">
-                Page {currentPage} of {totalPages}
-              </Typography>
-              <Button
-                variant="outlined"
-                size="small"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(prev => prev + 1)}>
-                Next
-              </Button>
-            </Box>
+            {totalPages > 1 && (
+              <Box display="flex" justifyContent="center" mt={2}>
+                <Pagination
+                  count={totalPages}
+                  page={currentPage}
+                  onChange={(_, page) => setCurrentPage(page)}
+                  color="primary"
+                  shape="rounded"
+                />
+              </Box>
+            )}
           </CustomTabPanel>
           <CustomTabPanel value={value} index={1}>
             <CoinBalanceList tokenBalance={tokenBalance} />

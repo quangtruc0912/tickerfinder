@@ -6,12 +6,14 @@ export type Setting = {
   changeRate: boolean;
   tickerBackgroundColor: string; // Added hexColor property
   address: string;
+  coinBalanceLowerThreshold: number;
 };
 
 const defaultSetting: Setting = {
   changeRate: false,
   tickerBackgroundColor: '#FFFFFF',
   address: '',
+  coinBalanceLowerThreshold: 10,
 };
 
 function ensureSetting(obj: Partial<Setting>): Setting {
@@ -27,6 +29,7 @@ type SettingStorage = BaseStorage<Setting> & {
   setAddress: (address: string) => Promise<void>;
   getSetting: () => Promise<Setting>;
   ensureSetting: () => Promise<void>;
+  setLowerThreshold: (number: number) => Promise<void>;
 };
 
 const storage = createStorage<Setting>(
@@ -68,5 +71,11 @@ export const settingStorage: SettingStorage = {
   ensureSetting: async () => {
     var setting = ensureSetting(await storage.get());
     await storage.set(setting);
+  },
+  setLowerThreshold: async (number: number) => {
+    await storage.set(currentSetting => ({
+      ...currentSetting,
+      coinBalanceLowerThreshold: number,
+    }));
   },
 };

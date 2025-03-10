@@ -33,6 +33,7 @@ const THRESHOLD_KEY = 'THRESHOLD';
 
 type IWatchListStorage = BaseStorage<WatchlistItem[]> & {
   addToWatchlist: (item: WatchlistItem) => Promise<void>;
+  updateWatchlist: (item: WatchlistItem) => Promise<void>;
   removeFromWatchlist: (address: string) => Promise<void>;
   removePriorityFromWatchlist: (name: string) => Promise<void>;
   getWatchlist: () => Promise<WatchlistItem[]>;
@@ -74,6 +75,15 @@ export const useWatchListStorage: IWatchListStorage = {
     const list = await watchListStorage.get();
 
     return list;
+  },
+  updateWatchlist: async (item: WatchlistItem) => {
+    const currentList = await watchListStorage.get();
+
+    const updatedList = currentList.map(existingItem =>
+      existingItem.guidID === item.guidID ? { ...existingItem, ...item } : existingItem,
+    );
+
+    await watchListStorage.set(updatedList);
   },
 };
 

@@ -37,6 +37,7 @@ type ITokenBalanceStorage = BaseStorage<TokenBalanceData[]> & {
   updateTokensBalance: (item: TokenBalanceData[]) => Promise<void>;
   removeFromTokenBalance: (address: string) => Promise<void>;
   getTokenBalanace: () => Promise<TokenBalanceData[]>;
+  removeAllTokenBalance: () => Promise<void>;
 };
 
 const TokenBalanceStorage = createStorage<TokenBalanceData[]>(TOKENBALANCE_KEY, [], {
@@ -71,5 +72,8 @@ export const tokenBalanceStorage: ITokenBalanceStorage = {
     const list = await tokenBalanceStorage.get();
 
     return list;
+  },
+  removeAllTokenBalance: async () => {
+    await tokenBalanceStorage.set([]);
   },
 };
