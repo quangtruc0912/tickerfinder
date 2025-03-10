@@ -209,14 +209,16 @@ chrome.runtime.onMessage.addListener(
 
     switch (type) {
       case 'FETCH_KUCOIN':
-        return fetchKucoinData(ticker!, senderResponse);
+        fetchKucoinData(ticker!, senderResponse);
+        return true;
 
       case 'GET_WATCHLIST':
         senderResponse(watchlist);
         return true;
 
       case 'GET_THRESHOLD':
-        return fetchThreshold(id!, senderResponse);
+        fetchThreshold(id!, senderResponse);
+        return true;
 
       case 'open_side_panel':
         (async () => {
@@ -233,7 +235,8 @@ chrome.runtime.onMessage.addListener(
         return true;
 
       case 'COINGECKO_IMAGE':
-        return fetchCoingeckoImage(id!, senderResponse);
+        fetchCoingeckoImage(id!, senderResponse);
+        return true;
 
       default:
         return true;
@@ -246,7 +249,9 @@ async function fetchKucoinData(ticker: string, senderResponse: (response: any) =
     const response = await fetch(
       `https://api.kucoin.com/api/v1/market/stats?symbol=${ticker}-USDT&timestamp=${Date.now()}`,
     );
+
     const data = await response.json();
+    console.log(response);
     senderResponse(data);
   } catch (error) {
     senderResponse({ error: 'Failed to fetch KuCoin data' });

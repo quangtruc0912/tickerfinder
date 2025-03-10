@@ -57,8 +57,6 @@ export const tokenBalanceStorage: ITokenBalanceStorage = {
   updateTokensBalance: async item => {
     try {
       await tokenBalanceStorage.set(item);
-
-      console.log('Token balance successfully updated!', item);
     } catch (error) {
       console.error('Error updating tokens balance:', error);
     }
