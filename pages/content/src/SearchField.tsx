@@ -70,7 +70,7 @@ const SearchField: React.FC<SearchFieldProps> = ({ isOpen, onClose }) => {
           inputRef={inputRef}
           fullWidth
           variant="outlined"
-          placeholder="Search..."
+          placeholder="Search Ticker or Contract address..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
           autoFocus

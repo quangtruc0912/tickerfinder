@@ -108,8 +108,6 @@ const injectIndicating = async () => {
 
   uniqueTickers.forEach((ticker: string) => {
     chrome.runtime.sendMessage({ type: 'FETCH_KUCOIN', ticker }, response => {
-      console.log(ticker);
-      console.log(response);
       if (response.data) {
         filteredElements.forEach(element => {
           let temp = element.textContent?.toUpperCase().substring(1);

@@ -119,9 +119,7 @@ const SidepanelButton = (props: ComponentPropsWithoutRef<'button'>) => {
         (theme === 'light' ? 'bg-white text-black shadow-black' : 'bg-black text-white')
       }
       onClick={async (event: any) => {
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        const tab = tabs[0];
-        chrome.runtime.sendMessage({ type: 'open_side_panel', tab });
+        chrome.runtime.sendMessage({ type: 'btn_side_panel' });
       }}>
       {props.children}
     </button>

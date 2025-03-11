@@ -105,7 +105,7 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
       const fileUrl = chrome.runtime.getURL(dir);
 
       try {
-        const response = await fetch(dir);
+        const response = await fetch(fileUrl);
         if (response.ok) {
           setLogoUrl(`content/${memoizedRow.ticker.toUpperCase()}.svg`);
         } else {
@@ -126,7 +126,6 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
     if (isInWatchlist) {
       await useWatchListStorage.removePriorityFromWatchlist(row.name);
     } else {
-      console.log(logoUrl);
       await useWatchListStorage.addToWatchlist({
         guidID: uuid,
         address: '',
@@ -231,7 +230,7 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
           },
         })}>
         <Avatar
-          src={chrome.runtime.getURL(logoUrl)}
+          src={logoUrl.startsWith('https') ? logoUrl : chrome.runtime.getURL(logoUrl)}
           sx={{
             width: 50,
             height: 50,

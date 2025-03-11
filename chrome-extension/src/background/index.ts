@@ -221,14 +221,8 @@ chrome.runtime.onMessage.addListener(
         fetchThreshold(id!, senderResponse);
         return true;
 
-      case 'open_side_panel':
-        (async () => {
-          chrome.sidePanel.setOptions({
-            tabId: tab?.id,
-            path: 'side-panel/index.html',
-            enabled: !isSidePanelOpen, // Disables the side panel
-          });
-        })();
+      case 'btn_side_panel':
+        openSidePanel();
         return true;
 
       case 'open_options':
@@ -244,6 +238,23 @@ chrome.runtime.onMessage.addListener(
     }
   },
 );
+
+function openSidePanel() {
+  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+    if (isSidePanelOpen) {
+      chrome.sidePanel.setOptions({
+        enabled: false, // Disables the side panel
+      });
+      isSidePanelOpen = false;
+    } else {
+      chrome.sidePanel.setOptions({
+        enabled: true, // Disables the side panel
+      });
+      chrome.sidePanel.open({ windowId: tab.windowId });
+      isSidePanelOpen = true;
+    }
+  });
+}
 
 async function fetchKucoinData(ticker: string, senderResponse: (response: any) => void) {
   try {
@@ -423,7 +434,6 @@ const DataCorrection = async (): Promise<void> => {
     }
   });
 };
-
 chrome.commands.onCommand.addListener(async command => {
   if (command === 'toggle_side_panel') {
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {

@@ -264,22 +264,25 @@ const SidePanel = () => {
               value={value}
               onChange={handleChange}
               aria-label="watchlist and wallet tabs"
-              variant="fullWidth" // Ensures tabs take up full width
+              variant="fullWidth"
               textColor="primary"
               indicatorColor="primary"
               sx={{
                 '& .MuiTabs-indicator': {
-                  height: 4, // Makes the active tab indicator thicker
+                  height: 4,
                   borderRadius: 2,
                 },
                 '& .MuiTab-root': {
-                  textTransform: 'none', // Keeps text natural (not uppercase)
+                  textTransform: 'none',
                   fontSize: '1rem',
                   fontWeight: 500,
                   minHeight: 48,
-                  color: 'text.secondary',
+                  color: 'grey.500', // Inactive tabs are gray
                   '&.Mui-selected': {
-                    color: 'primary.main',
+                    color: 'primary.main', // Active tab is primary
+                  },
+                  '&:hover': {
+                    color: 'grey.700', // Darker gray on hover
                   },
                 },
               }}>
