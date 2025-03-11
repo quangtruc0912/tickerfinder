@@ -20,7 +20,6 @@ export default function TickerPopup() {
 
     if (target && popUpText) {
       setShowPopup(true);
-      setIsLoading(true);
 
       const rect = target.getBoundingClientRect();
       const scrollTop = window.scrollY;
