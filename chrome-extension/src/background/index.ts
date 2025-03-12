@@ -232,15 +232,22 @@ chrome.runtime.onMessage.addListener(
       case 'COINGECKO_IMAGE':
         fetchCoingeckoImage(id!, senderResponse);
         return true;
-
+      case 'UPDATE_ADDRESS':
+        forceUpdate(senderResponse);
+        return true;
       default:
         return true;
     }
   },
 );
 
+async function forceUpdate(senderResponse: (response: any) => void) {
+  fetchBlockScoutData();
+  senderResponse({ message: 'Forced update' });
+}
 function openSidePanel() {
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+    chrome.storage.local.set({ selectedTab: 0 });
     if (isSidePanelOpen) {
       chrome.sidePanel.setOptions({
         enabled: false, // Disables the side panel
@@ -418,6 +425,7 @@ chrome.runtime.onInstalled.addListener(async details => {
     const combinedData: KuCoinData[] = await fileResponse.json();
     KuCoinStorage.setData(combinedData);
     settingStorage.ensureSetting();
+    chrome.storage.local.set({ selectedTab: 1 });
     await DataCorrection();
   }
 });
@@ -438,16 +446,25 @@ chrome.commands.onCommand.addListener(async command => {
   if (command === 'toggle_side_panel') {
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
       if (isSidePanelOpen) {
-        chrome.sidePanel.setOptions({
-          enabled: false, // Disables the side panel
+        chrome.storage.local.get(['selectedTab'], result => {
+          if (result.selectedTab === 0) {
+            chrome.storage.local.set({ selectedTab: 1 });
+            chrome.runtime.sendMessage({ tab: 1 });
+          } else {
+            chrome.sidePanel.setOptions({
+              enabled: false, // Disables the side panel
+            });
+            isSidePanelOpen = false;
+          }
         });
-        isSidePanelOpen = false;
       } else {
         chrome.sidePanel.setOptions({
-          enabled: true, // Disables the side panel
+          enabled: true,
         });
         chrome.sidePanel.open({ windowId: tab.windowId });
         isSidePanelOpen = true;
+        chrome.storage.local.set({ selectedTab: 0 });
+        chrome.runtime.sendMessage({ tab: 0 });
       }
     });
   }
@@ -516,7 +533,6 @@ const fetchBlockScoutData = async () => {
   let response = await fetch(url);
 
   let data = (await response.json()) as TokenBalanceData[];
-
   const nativeUrl = `https://eth.blockscout.com/api/v2/addresses/${setting.address}`;
   let tokenNativeResponse = await fetch(nativeUrl);
   let nativeTokenData = (await tokenNativeResponse.json()) as any;
@@ -524,10 +540,10 @@ const fetchBlockScoutData = async () => {
   let nativeTokenBalance = await mapTokenBalance(nativeTokenData);
 
   let updatedList = filterTokensBalance(data);
-  let fetchedList = await fetchCoinsBalanceByDex(updatedList);
-  fetchedList.push(nativeTokenBalance);
-  tokensBalance = fetchedList;
-  tokenBalanceStorage.updateTokensBalance(fetchedList);
+  updatedList.push(nativeTokenBalance);
+  tokensBalance = updatedList;
+
+  tokenBalanceStorage.updateTokensBalance(tokensBalance);
   settingStorage.setLastFetchCoinBalance(Date.now());
 };
 
@@ -583,37 +599,6 @@ const filterTokensBalance = (data: TokenBalanceData[]) => {
 
   const updatedList = Array.from(currentMap.values());
   return updatedList;
-};
-
-const fetchCoinsBalanceByDex = async (tokenBalance: TokenBalanceData[]) => {
-  const tokenAddresses = tokenBalance.map(item => item.token.address).join(',');
-  const url = `https://api.dexscreener.com/tokens/v1/ethereum/${encodeURIComponent(tokenAddresses)}`;
-
-  const res = await fetch(url, {
-    method: 'GET',
-    headers: { 'Cache-Control': 'no-cache' },
-    cache: 'no-store',
-  });
-
-  const data = await res.json();
-
-  // Ensure token_cex is always present
-  tokenBalance.forEach(token => {
-    if (!token.token_cex) {
-      token.token_cex = { exchange_rate: '0', change_24h: null };
-    }
-  });
-
-  data.forEach((item: any) => {
-    const token = tokenBalance.find(
-      token => token.token.address.toLowerCase() === item.baseToken.address.toLowerCase(),
-    );
-    if (token) {
-      token.token_cex.exchange_rate = item.priceUsd ?? '0'; // Ensure fallback value
-      token.token_cex.change_24h = item.priceChange?.h24 ?? null;
-    }
-  });
-  return tokenBalance;
 };
 
 const fetchTokenBalance = async () => {

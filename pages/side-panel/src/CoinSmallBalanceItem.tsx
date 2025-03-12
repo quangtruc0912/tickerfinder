@@ -31,9 +31,9 @@ const formatCustomPrice = (price: number): string => {
 const formatTokenValue = (value: number): string =>
   value >= 10 ? Math.floor(value).toString() : value >= 1 ? value.toFixed(1) : value.toFixed(3);
 
-const CoinBalanceItem: React.FC<CoinItemProps> = ({ item }) => {
+const CoinSmallBalanceItem: React.FC<CoinItemProps> = ({ item }) => {
   const normalizedBalance = Number(item.value) / 10 ** Number(item.token.decimals);
-  const tokenCoinPrice = normalizedBalance * Number(item.token_cex?.exchange_rate ?? 0) || item.tokenCoinPrice;
+  const tokenCoinPrice = item.tokenCoinPrice;
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', height: '72px' }}>
@@ -53,14 +53,10 @@ const CoinBalanceItem: React.FC<CoinItemProps> = ({ item }) => {
           <Typography variant="body2" fontWeight="500">
             ${formatCustomPrice(tokenCoinPrice ?? 0)}
           </Typography>
-          <Typography variant="caption" color={Number(item.token_cex?.change_24h) > 0 ? 'success.main' : 'error.main'}>
-            {Number(item.token_cex?.change_24h) > 0 ? '+' : ''}
-            {Number(item.token_cex?.change_24h ?? 0).toFixed(2)}%
-          </Typography>
         </Box>
       </Box>
     </Box>
   );
 };
 
-export default CoinBalanceItem;
+export default CoinSmallBalanceItem;

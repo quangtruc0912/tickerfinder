@@ -230,8 +230,28 @@ const SidePanel = () => {
     }
   }, [watchlist]); // Runs whenever the watchlist updates
 
+  useEffect(() => {
+    // Load the last selected tab from storage
+    chrome.storage.local.get(['selectedTab'], result => {
+      if (result.selectedTab !== undefined) {
+        setValue(result.selectedTab);
+      }
+    });
+
+    // Listen for tab change messages
+    const handleMessage = (message: { tab: React.SetStateAction<number> | undefined }) => {
+      if (message.tab !== undefined) {
+        setValue(message.tab);
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleMessage);
+    return () => chrome.runtime.onMessage.removeListener(handleMessage);
+  }, []);
+
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
+    chrome.storage.local.set({ selectedTab: newValue });
   };
 
   const paginatedWatchlist = watchlist.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
