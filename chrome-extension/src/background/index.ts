@@ -414,6 +414,7 @@ chrome.runtime.onInstalled.addListener(async details => {
         });
       }
     }
+    chrome.runtime.openOptionsPage();
   } else if (details.reason === 'update') {
     chrome.storage.local.remove('COINGECKOCA', () => {
       console.log('Key COINGECKOCA removed from local storage.');
@@ -427,6 +428,7 @@ chrome.runtime.onInstalled.addListener(async details => {
     settingStorage.ensureSetting();
     chrome.storage.local.set({ selectedTab: 1 });
     await DataCorrection();
+    chrome.runtime.openOptionsPage();
   }
 });
 

@@ -46,7 +46,7 @@ const Options = () => {
             marginBottom: '1rem',
             fontWeight: 'bold',
           }}>
-          Settings
+          Settings CrXpto Extension
         </Typography>
         <ToggleThemeButton>Toggle DARK / LIGHT Theme</ToggleThemeButton>
         <Divider sx={{ width: '100%', margin: '1.5rem 0' }} /> {/* Divider between sections */}
