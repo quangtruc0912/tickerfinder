@@ -1,6 +1,11 @@
+🚀 CrXptoTracker: Real-Time Crypto Prices Watch List & Alerts 
+
+Enhance your crypto experience on Everywhere with real-time price updates, instant alerts, and seamless market tracking—all in one place.
+
 
 ## Project based on boilerplate
 - [chrome-extension-boilerplate-react-vite](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite)
+
 
 ## Getting started
 
