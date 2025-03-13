@@ -2,13 +2,19 @@ import '@src/Options.css';
 import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
 import { exampleThemeStorage, settingStorage } from '@extension/storage';
 import { useState } from 'react';
-import { Container, Typography, Switch, TextField, Button, Box, Divider } from '@mui/material';
-import type { ComponentPropsWithoutRef } from 'react';
+import { Container, Typography, Tabs, Tab, TextField, Button, Box, Divider } from '@mui/material';
+import type { ComponentPropsWithoutRef, SetStateAction } from 'react';
+import { ChangeLog } from './ChangeLog';
+import { Instructions } from './Intructions';
 const Options = () => {
   const theme = useStorage(exampleThemeStorage);
   const setting = useStorage(settingStorage);
   const isLight = theme === 'light';
+  const [tabIndex, setTabIndex] = useState(0);
 
+  const handleChange = (_event: any, newIndex: SetStateAction<number>) => {
+    setTabIndex(newIndex);
+  };
   return (
     <Container
       maxWidth={false}
@@ -125,7 +131,15 @@ const Options = () => {
               variant="outlined"
               placeholder="Enter ERC-20 contract address"
               value={setting.address}
-              onChange={e => settingStorage.setAddress(e.target.value)}
+              onChange={e => {
+                const newAddress = e.target.value;
+                settingStorage.setAddress(newAddress);
+
+                // Send message to background script
+                chrome.runtime.sendMessage({ type: 'UPDATE_ADDRESS', address: newAddress }, response => {
+                  console.log('Background Response:', response);
+                });
+              }}
               sx={{
                 flex: 1, // Makes the input take available space
                 minWidth: '250px', // Ensures proper width
@@ -146,23 +160,58 @@ const Options = () => {
       <Box
         sx={{
           width: '50%',
-          height: '100vh',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
+          alignItems: 'flex-start',
+          justifyContent: 'flex-start',
+          padding: '2rem',
+          backgroundColor: isLight ? '#fff' : '#333',
+          borderRadius: '8px',
+          boxShadow: 3, // Slight shadow for the form
+          marginRight: '2rem', // Space between left and right side
         }}>
         {/* Placeholder for any other settings */}
+        <Tabs
+          value={tabIndex}
+          onChange={handleChange}
+          textColor="primary"
+          indicatorColor="primary"
+          variant="fullWidth"
+          sx={{
+            '& .MuiTabs-indicator': {
+              height: 4,
+              borderRadius: 2,
+            },
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontSize: '1rem',
+              fontWeight: 500,
+              minHeight: 48,
+              color: 'grey.500', // Inactive tabs are gray
+              '&.Mui-selected': {
+                color: 'primary.main', // Active tab is primary
+              },
+              '&:hover': {
+                color: 'grey.700', // Darker gray on hover
+              },
+            },
+          }}>
+          <Tab label="Instructions" />
+          <Tab label="Change Logs" />
+        </Tabs>
+
+        {/* Tabs Content */}
         <Box
           sx={{
-            width: '50%',
-            height: '100vh',
+            width: '100%',
+            height: 'calc(100vh - 120px)', // Adjust to fit well
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-          <ChangeLog />
+          {tabIndex === 0 && <Instructions />}
+          {tabIndex === 1 && <ChangeLog />}
         </Box>
       </Box>
     </Container>
@@ -182,85 +231,6 @@ const ToggleThemeButton = (props: ComponentPropsWithoutRef<'button'>) => {
       onClick={exampleThemeStorage.toggle}>
       {props.children}
     </button>
-  );
-};
-
-const ChangeLog = () => {
-  const theme = useStorage(exampleThemeStorage);
-  const isLight = theme === 'light';
-
-  const logs = [
-    {
-      version: '0.1.4',
-      date: 'Feb 08, 2025',
-      changes: ['🚀 Display contract verified by Coingecko.', '🎨 Add change log on options.', '🔄 Update dex icon'],
-      devComments:
-        'Dexscreener query might have alots of token that have the same ticker, and sometime scam token. Add another dex that can verify contract address could reduce amount of scam token.',
-    },
-    {
-      version: '0.1.5',
-      date: 'Feb 13, 2025',
-      changes: [
-        '🔥 Add search ticker modal (can search by CA and Ticker).',
-        '✨ Ctrl + / to OPEN modal search ',
-        '🔄 Open search button on side panel',
-        '🌌 Fix Valid text on Threshold notification',
-      ],
-      devComments:
-        'The Chrome extension automatically detects tickers and displays price/data when users hover over them. However, it only works for elements that already exist on the screen. Adding the ability for users to search for any ticker or contract address would provide more freedom.',
-    },
-    {
-      version: '0.1.6',
-      date: 'Feb 18, 2025',
-      changes: [
-        '🚀 Add chain filter for price display.',
-        '✨ Small Chart Buys/Sells to display buy sell presssure',
-        '🔄 Paging for sidepanel',
-      ],
-      devComments: 'None',
-    },
-  ];
-
-  return (
-    <Box
-      sx={{
-        width: '100%',
-        maxWidth: '600px',
-        backgroundColor: isLight ? '#fff' : '#333',
-        padding: '1.5rem',
-        borderRadius: '8px',
-        boxShadow: 3,
-        marginTop: '1rem',
-      }}>
-      <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: '1rem', color: isLight ? 'black' : 'white' }}>
-        Change Log
-      </Typography>
-      <Divider sx={{ marginBottom: '1rem' }} />
-
-      {logs.map((log, index) => (
-        <Box
-          key={index}
-          sx={{
-            marginBottom: '1.5rem',
-            paddingBottom: '1rem',
-            borderBottom: index !== logs.length - 1 ? '1px solid gray' : 'none',
-          }}>
-          <Typography variant="h6" sx={{ color: isLight ? 'black' : 'white' }}>
-            {log.version} - {log.date}
-          </Typography>
-          <ul style={{ paddingLeft: '1rem', color: isLight ? 'black' : 'white' }}>
-            {log.changes.map((change, i) => (
-              <li key={i}>{change}</li>
-            ))}
-          </ul>
-          <Typography
-            variant="body2"
-            sx={{ marginTop: '0.5rem', fontStyle: 'italic', color: isLight ? 'gray' : 'lightgray' }}>
-            📝 Dev Comments: {log.devComments}
-          </Typography>
-        </Box>
-      ))}
-    </Box>
   );
 };
 

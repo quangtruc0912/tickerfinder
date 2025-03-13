@@ -62,13 +62,19 @@ const Popup = () => {
           Click to inject Content Script
         </button> */}
       <div className="flex justify-center gap-2 mt-4">
-        <OptionsButton>Settings/ChangeLog</OptionsButton>
+        <OptionsButton>Settings/Instructions</OptionsButton>
         <SidepanelButton>Side panel / CTR + B</SidepanelButton>
       </div>
       {/* </header> */}
       <div className="flex justify-center gap-4 p-4">
         <SocialMediaButton href="https://x.com/crXptoExt" icon="twitter" label="Twitter/X" isLight={isLight} />
         <SocialMediaButton href="https://discord.gg/eJq77fBKY8" icon="discord" label="Discord" isLight={isLight} />
+        <SocialMediaButton
+          href="https://github.com/quangtruc0912/tickerfinder"
+          icon="github"
+          label="Github"
+          isLight={isLight}
+        />
       </div>
     </div>
   );

@@ -252,9 +252,6 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
       const timeout = setTimeout(() => {
         if (isSymbolValid === true) {
           setIsSymbolValid(false);
-          console.log(
-            `Symbol ${row.baseToken.symbol || 'ANYONE'}/${row.quoteToken.symbol === '0x0' ? 'ETH' : row.quoteToken.symbol || 'ETH'} likely invalid`,
-          );
         }
       }, 5000); // 5-second timeout
       return () => clearTimeout(timeout);
