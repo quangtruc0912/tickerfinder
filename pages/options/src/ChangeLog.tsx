@@ -36,6 +36,12 @@ export const ChangeLog = () => {
       ],
       devComments: 'None',
     },
+    {
+      version: '0.1.8',
+      date: 'March 13, 2025',
+      changes: ['🔥 Add Wallet tracking.', '✨ Intructions / Demo video for new user'],
+      devComments: 'None',
+    },
   ];
 
   return (
