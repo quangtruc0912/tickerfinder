@@ -1,12 +1,12 @@
 import { toggleTheme } from '@src/toggleTheme';
 import { TICKER_PROCESSED, HIGHTLIGHTED_COLOR, injectReact, ArrowDirection } from '@extension/shared';
-import { PRIORITYCHAINLIST, useStorage } from '@extension/shared';
+
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { createRoot } from 'react-dom/client';
 import _ from 'lodash';
 import TickerPopup from '@src/TickerPopup';
-import { settingStorage } from '@extension/storage';
+import { settingStorage, PRIORITYCHAINLIST } from '@extension/storage';
 import SearchModal from '@src/SearchModal';
 
 const injectTicker = async () => {

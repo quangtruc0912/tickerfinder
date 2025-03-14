@@ -170,21 +170,28 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
     );
   };
 
-  useEffect(() => {
-    const checkWatchlist = async () => {
-      const watchlist = await useWatchListStorage.getWatchlist();
-      const isAdded = watchlist.some(listItem => listItem.url === row.url);
-      setIsInWatchlist(isAdded);
-    };
+  const checkWatchlist = async () => {
+    const watchlist = await useWatchListStorage.getWatchlist();
+    const isAdded = watchlist.some(listItem => listItem.url === row.url);
+    setIsInWatchlist(isAdded);
+  };
 
+  useEffect(() => {
     checkWatchlist();
   }, [row]);
 
   const handleToggle = async () => {
     if (isInWatchlist) {
-      await useWatchListStorage.removeFromWatchlist(row.url);
+      chrome.runtime.sendMessage({ type: 'REMOVE_FROM_WATCHLIST', id: row.url }, response => {
+        // if (chrome.runtime.lastError) {
+        //   console.error("Error removing from watchlist:", chrome.runtime.lastError);
+        // } else {
+        //   console.log("Removed from watchlist:", response);
+        //   setIsInWatchlist(false);
+        // }
+      });
     } else {
-      await useWatchListStorage.addToWatchlist({
+      const watchlistItem = {
         guidID: uuid,
         address: row.baseToken.address,
         isPriority: false,
@@ -193,15 +200,24 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
         url: row.url,
         dexId: row.dexId,
         chainId: row.chainId,
-        changeRate24h: row?.priceChange?.h24?.toString(),
+        changeRate24h: row?.priceChange?.h24?.toString() || '0',
         price: row.priceUsd,
         imageUrl: row.info?.imageUrl || '',
-        changeRate5m: row?.priceChange?.m5?.toString(),
-        changeRate1h: row?.priceChange?.h1?.toString(),
-        changeRate6h: row?.priceChange?.h24?.toString(),
+        changeRate5m: row?.priceChange?.m5?.toString() || '0',
+        changeRate1h: row?.priceChange?.h1?.toString() || '0',
+        changeRate6h: row?.priceChange?.h6?.toString() || '0',
+      };
+
+      chrome.runtime.sendMessage({ type: 'ADD_TO_WATCHLIST', item: watchlistItem }, response => {
+        // if (chrome.runtime.lastError) {
+        //   console.error("Error adding to watchlist:", chrome.runtime.lastError);
+        // } else {
+        //   console.log("Added to watchlist:", response);
+        //   setIsInWatchlist(true);
+        // }
       });
     }
-
+    checkWatchlist();
     setIsInWatchlist(prev => !prev);
   };
 

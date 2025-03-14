@@ -130,9 +130,21 @@ const SidePanel = () => {
 
   const removeCoin = async (url: string, name: string, isPriority: boolean) => {
     if (!isPriority) {
-      await useWatchListStorage.removeFromWatchlist(url);
+      chrome.runtime.sendMessage({ type: 'REMOVE_FROM_WATCHLIST', id: url }, response => {
+        // if (chrome.runtime.lastError) {
+        //   console.error("Error removing from watchlist:", chrome.runtime.lastError);
+        // } else {
+        //   console.log("Removed from watchlist:", response);
+        // }
+      });
     } else {
-      await useWatchListStorage.removePriorityFromWatchlist(name);
+      chrome.runtime.sendMessage({ type: 'REMOVE_PRIORITY_FROM_WATCHLIST', name: name }, response => {
+        // if (chrome.runtime.lastError) {
+        //   console.error("Error removing priority coin:", chrome.runtime.lastError);
+        // } else {
+        //   console.log("Removed priority coin from watchlist:", response);
+        // }
+      });
     }
   };
 

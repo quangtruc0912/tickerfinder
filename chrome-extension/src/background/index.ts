@@ -11,7 +11,9 @@ import {
   settingStorage,
   tokenBalanceStorage,
   TokenBalanceData,
+  PRIORITYCHAINLIST,
 } from '@extension/storage';
+
 let isSidePanelOpen = false; // Track whether the side panel is open
 const INIT = ['BTC', 'SOL', 'ETH'];
 
@@ -22,6 +24,12 @@ const COINGECKOINTERVAL = 3600000; // 1 HOUR
 
 let watchlist: WatchlistItem[] = [];
 let tokensBalance: TokenBalanceData[] = [];
+
+let isFetching = false;
+let pendingUpdate = false;
+let pendingAdditions: WatchlistItem[] = [];
+let pendingDeletions: string[] = [];
+let pendingPriorityDeletions: string[] = [];
 
 const notificationUrls: Record<string, string> = {};
 
@@ -138,24 +146,66 @@ const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
 };
 
 const fetchData = async () => {
-  const storage = await useWatchListStorage.get();
-  let updatedData: WatchlistItem[] = [];
-  let prioritiesCoin = storage.filter(ele => ele.isPriority == true);
-  let coins = storage.filter(ele => ele.isPriority == false);
-  for (const coin of prioritiesCoin) {
-    let priorityData: WatchlistItem;
+  if (isFetching) {
+    pendingUpdate = true; // Mark that we need to re-run fetchData
+    return;
+  }
 
-    priorityData = await fetchPriorityCoin(coin.symbol, coin);
-    if (priorityData !== null) {
-      updatedData.push(priorityData);
+  isFetching = true;
+  pendingUpdate = false; // Reset pending update flag
+
+  try {
+    let storage = await useWatchListStorage.get();
+
+    // Apply pending deletions before fetching data
+    if (pendingDeletions.length > 0) {
+      storage = storage.filter(item => !pendingDeletions.includes(item.url));
+      pendingDeletions = []; // Clear deletions after applying
+    }
+
+    if (pendingPriorityDeletions.length > 0) {
+      storage = storage.filter(item => !(pendingPriorityDeletions.includes(item.name) && item.isPriority));
+      pendingPriorityDeletions = []; // Clear deletions after applying
+    }
+
+    // Apply pending additions before fetching data
+    if (pendingAdditions.length > 0) {
+      storage = storage.concat(pendingAdditions);
+      pendingAdditions = []; // Clear additions after applying
+    }
+
+    let updatedData: WatchlistItem[] = [];
+    let prioritiesCoin = storage.filter(ele => ele.isPriority);
+    let coins = storage.filter(ele => !ele.isPriority);
+
+    for (const coin of prioritiesCoin) {
+      let priorityData = await fetchPriorityCoin(coin.symbol, coin);
+      if (priorityData !== null) {
+        updatedData.push(priorityData);
+      }
+    }
+
+    let data = await fetchCoinsData(coins);
+    updatedData = updatedData.concat(data);
+
+    useWatchListStorage.set(updatedData);
+    watchlist = updatedData;
+    checkAlarms(updatedData);
+    settingStorage.setLastFetchWatchList(Date.now());
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  } finally {
+    isFetching = false;
+
+    // If an update was queued while fetching, run fetchData again
+    if (
+      pendingUpdate ||
+      pendingAdditions.length > 0 ||
+      (pendingDeletions.length > 0 && pendingPriorityDeletions.length > 0)
+    ) {
+      fetchData();
     }
   }
-  let data = await fetchCoinsData(coins);
-  updatedData = updatedData.concat(data);
-  useWatchListStorage.set(updatedData);
-  watchlist = updatedData;
-  checkAlarms(updatedData);
-  settingStorage.setLastFetchWatchList(Date.now());
 };
 
 const checkAlarms = async (data: WatchlistItem[]) => {
@@ -202,11 +252,11 @@ const notifyUser = (triggered: WatchlistItem[]) => {
 
 chrome.runtime.onMessage.addListener(
   (
-    message: { type: string; ticker?: string; id?: string; tab?: chrome.tabs.Tab },
+    message: { type: string; ticker?: string; id?: string; name?: string; item?: WatchlistItem },
     _sender,
     senderResponse: (response: any) => void,
   ) => {
-    const { type, ticker, id, tab } = message;
+    const { type, ticker, id, name, item } = message;
 
     switch (type) {
       case 'FETCH_KUCOIN':
@@ -232,14 +282,59 @@ chrome.runtime.onMessage.addListener(
       case 'COINGECKO_IMAGE':
         fetchCoingeckoImage(id!, senderResponse);
         return true;
+
       case 'UPDATE_ADDRESS':
         forceUpdate(senderResponse);
         return true;
+
+      // New cases added below:
+      case 'ADD_TO_WATCHLIST':
+        if (item) {
+          addToWatchlist(item);
+        }
+        return true;
+
+      case 'REMOVE_FROM_WATCHLIST':
+        if (id) {
+          removeFromWatchlist(id);
+        }
+        return true;
+
+      case 'REMOVE_PRIORITY_FROM_WATCHLIST':
+        if (name) {
+          removePriorityFromWatchlist(name);
+        }
+        return true;
+
       default:
         return true;
     }
   },
 );
+
+const addToWatchlist = async (item: WatchlistItem) => {
+  if (isFetching) {
+    pendingAdditions.push(item);
+  } else {
+    await useWatchListStorage.addToWatchlist(item);
+  }
+};
+
+const removeFromWatchlist = async (address: string) => {
+  if (isFetching) {
+    pendingDeletions.push(address);
+  } else {
+    await useWatchListStorage.removeFromWatchlist(address);
+  }
+};
+
+const removePriorityFromWatchlist = async (name: string) => {
+  if (isFetching) {
+    pendingPriorityDeletions.push(name);
+  } else {
+    await useWatchListStorage.removePriorityFromWatchlist(name);
+  }
+};
 
 async function forceUpdate(senderResponse: (response: any) => void) {
   fetchBlockScoutData();
@@ -319,66 +414,6 @@ function generateUUID(): string {
     return v.toString(16);
   });
 }
-const PRIORITYCHAINLIST: readonly [string, string][] = [
-  ['BTC', 'Bitcoin'],
-  ['SOL', 'Solana'],
-  ['ETH', 'Ethereum'],
-  ['SUI', 'SUI'],
-  ['BNB', 'Binance Smart Chain'],
-  ['PLS', 'Pulse Chain'],
-  ['XRP', 'XRPL'],
-  ['TON', 'TON Chain'],
-  ['S', 'SONIC'],
-  ['AVAX', 'Avalanche'],
-  ['ARB', 'Arbitrum'],
-  ['MATIC', 'Polygon'],
-  ['ZK', 'zkSync'],
-  ['TRX', 'Tron'],
-  ['CRO', 'Cronos'],
-  ['APT', 'Aptos'],
-  ['ICP', 'ICP'],
-  ['OSMO', 'Osmosis'],
-  ['FTM', 'Fantom'],
-  ['HBAR', 'Hedera'],
-  ['ALGO', 'Algorand'],
-  ['NEAR', 'NEAR'],
-  ['BLAST', 'BLAST'],
-  ['OP', 'Optimism'],
-  ['INJ', 'Injective'],
-  ['APE', 'APE Chain'],
-  ['EGLD', 'MultiversX'],
-  ['MNT', 'Mantle'],
-  ['STRK', 'Starknet'],
-  ['VANA', 'VANA'],
-  ['ADA', 'Cardano'],
-  ['WLD', 'World Chain'],
-  ['SEI', 'SEI Chain'],
-  ['DOGE', 'Dogechain'],
-  ['SCR', 'Scroll'],
-  ['BONE', 'Bone Shiba Swap'],
-  ['ROSE', 'Oasis Sapphire'],
-  ['DOT', 'Polkadot'],
-  ['KAVA', 'KAVA'],
-  ['GLMR', 'Moonbeam'],
-  ['FLR', 'Flare'],
-  ['ETHW', 'Ethereum PoW'],
-  ['NRG', 'Energi'],
-  ['CANTO', 'CANTO'],
-  ['CELO', 'CELO'],
-  ['ETC', 'Ethereum Classic'],
-  ['FRAX', 'Frax Ether'],
-  ['BB', 'BounceBit'],
-  ['VENOM', 'Venom'],
-  ['EVMOS', 'EVMOS'],
-  ['DAI', 'Gnosis Chain'],
-  ['MOVR', 'Moonriver'],
-  ['ASTR', 'Astar Network'],
-  ['KCS', 'KCS'],
-  ['BOBA', 'BOBA NetWork'],
-  ['WAN', 'WAN Chain'],
-  ['ZETA', 'ZETA Chain'],
-  ['TT', 'ThunderCore (TT)'],
-];
 
 function findInPriorityChainList(search: string): [string, string] | null {
   const result = PRIORITYCHAINLIST.find(([key, value]) => key === search || value === search);

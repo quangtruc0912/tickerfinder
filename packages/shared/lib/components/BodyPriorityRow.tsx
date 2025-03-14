@@ -89,13 +89,12 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
     borderRadius: theme.shape.borderRadius,
   }));
 
+  const checkWatchlist = async () => {
+    const watchlist = await useWatchListStorage.getWatchlist();
+    const isAdded = watchlist.some(listItem => listItem.symbol === row.ticker && listItem.isPriority === true);
+    setIsInWatchlist(isAdded);
+  };
   useEffect(() => {
-    const checkWatchlist = async () => {
-      const watchlist = await useWatchListStorage.getWatchlist();
-      const isAdded = watchlist.some(listItem => listItem.symbol === row.ticker && listItem.isPriority === true);
-      setIsInWatchlist(isAdded);
-    };
-
     checkWatchlist();
   }, [memoizedRow, memoizedKucoinData]);
 
@@ -124,9 +123,15 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
 
   const handleToggle = async () => {
     if (isInWatchlist) {
-      await useWatchListStorage.removePriorityFromWatchlist(row.name);
+      chrome.runtime.sendMessage({ type: 'REMOVE_PRIORITY_FROM_WATCHLIST', name: row.name }, response => {
+        // if (chrome.runtime.lastError) {
+        //   console.error("Error removing from watchlist:", chrome.runtime.lastError);
+        // } else {
+        //   console.log("Removed from priority watchlist:", response);
+        // }
+      });
     } else {
-      await useWatchListStorage.addToWatchlist({
+      const watchlistItem = {
         guidID: uuid,
         address: '',
         isPriority: true,
@@ -141,9 +146,16 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
         changeRate5m: '0',
         changeRate1h: '0',
         changeRate6h: '0',
+      };
+      chrome.runtime.sendMessage({ type: 'ADD_TO_WATCHLIST', item: watchlistItem }, response => {
+        // if (chrome.runtime.lastError) {
+        //   console.error("Error adding to watchlist:", chrome.runtime.lastError);
+        // } else {
+        //   console.log("Added to priority watchlist:", response);
+        // }
       });
     }
-
+    checkWatchlist();
     setIsInWatchlist(prev => !prev);
   };
 
