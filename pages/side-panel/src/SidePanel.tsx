@@ -40,6 +40,12 @@ interface TabPanelProps {
   value: number;
 }
 
+const commonStyles = {
+  flexCenter: { display: 'flex', alignItems: 'center' },
+  flexBetween: { display: 'flex', justifyContent: 'space-between' },
+  ellipsisText: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+};
+
 function formatCustomPrice(price: number): string {
   if (price === undefined || price === 0) {
     return '0';
@@ -90,42 +96,34 @@ function CustomTabPanel(props: TabPanelProps) {
 const SidePanel = () => {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [thresholdList, setThresholdList] = useState<Threshold[]>([]);
-  let [threshold, setThreshold] = useState<Threshold>({ active: false, id: '', lower: 0, upper: 0 });
+  const [threshold, setThreshold] = useState<Threshold>({ active: false, id: '', lower: 0, upper: 0 });
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
-  const [value, setValue] = React.useState(0);
-  const tokenBalance = useStorage(tokenBalanceStorage);
-  // Pagination state
+  const [value, setValue] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Define the number of items per page
+  const itemsPerPage = 10;
 
+  const tokenBalance = useStorage(tokenBalanceStorage);
   const setting = useStorage(settingStorage);
 
   useEffect(() => {
-    const fetchWatchlist = async () => {
-      let list = await useWatchListStorage.getWatchlist();
-      setWatchlist(list);
-    };
+    const fetchWatchlist = async () => setWatchlist(await useWatchListStorage.getWatchlist());
+    const fetchThreshold = async () => setThresholdList(await useThresholdStorage.getThreshold());
 
-    const unsubscribeWatchList = useWatchListStorage.subscribe(() => {
-      setWatchlist(useWatchListStorage.getSnapshot() || []);
-    });
-
-    const fetchThreshold = async () => {
-      let list = await useThresholdStorage.getThreshold();
-      setThresholdList(list);
-    };
     fetchWatchlist();
     fetchThreshold();
 
-    const unsubscribeThresholdList = useThresholdStorage.subscribe(() => {
-      setThresholdList(useThresholdStorage.getSnapshot() || []);
-    });
+    const unsubscribeWatchList = useWatchListStorage.subscribe(() =>
+      setWatchlist(useWatchListStorage.getSnapshot() || []),
+    );
+    const unsubscribeThresholdList = useThresholdStorage.subscribe(() =>
+      setThresholdList(useThresholdStorage.getSnapshot() || []),
+    );
 
     return () => {
       unsubscribeWatchList();
       unsubscribeThresholdList();
-    }; // Cleanup on unmount
+    };
   }, []);
 
   const removeCoin = async (url: string, name: string, isPriority: boolean) => {
@@ -183,35 +181,27 @@ const SidePanel = () => {
   };
 
   const updateUpperThreshold = (price: string, item: WatchlistItem) => {
-    setThreshold(prev => ({
-      ...prev, // Keep the existing properties
-      upper: price, // Update the 'lower' property
-    }));
+    setThreshold(prev => ({ ...prev, upper: price }));
   };
 
   const updateLowerThreshold = (price: string, item: WatchlistItem) => {
-    setThreshold(prev => ({
-      ...prev, // Keep the existing properties
-      lower: price, // Update the 'lower' property
-    }));
+    setThreshold(prev => ({ ...prev, lower: price }));
   };
 
-  const checkForAlerts = (item: WatchlistItem, price: string | number, threshold: string) => {
-    if (Number(price) < Number(item.price) && Number(price !== 0) && threshold == 'upper') {
-      setAlertMessage(`Alert: Notification Upper threshold cant be lower the actual Price.`);
-    } else if (Number(price) > Number(item.price) && Number(price) !== 0 && threshold == 'lower') {
-      setAlertMessage(`Alert: Notification Lower threshold cant be higher the actual Price.`);
+  const checkForAlerts = (item: WatchlistItem, price: string | number, thresholdType: string) => {
+    const numPrice = Number(price);
+    const itemPrice = Number(item.price);
+    if (numPrice < itemPrice && numPrice !== 0 && thresholdType === 'upper') {
+      setAlertMessage('Alert: Notification Upper threshold can’t be lower than the actual Price.');
+    } else if (numPrice > itemPrice && numPrice !== 0 && thresholdType === 'lower') {
+      setAlertMessage('Alert: Notification Lower threshold can’t be higher than the actual Price.');
     } else {
-      setAlertMessage(null); // Clear the alert if no condition is met
+      setAlertMessage(null);
     }
   };
 
   const handleRedirect = (item: WatchlistItem) => {
-    if (item?.url) {
-      window.open(item?.url, '_blank');
-    } else {
-      window.open(`https://www.kucoin.com/trade/${item.symbol}-USDT`, '_blank');
-    }
+    window.open(item?.url || `https://www.kucoin.com/trade/${item.symbol}-USDT`, '_blank');
   };
 
   const toggleModal = async () => {
@@ -236,27 +226,17 @@ const SidePanel = () => {
   };
 
   useEffect(() => {
-    // Ensure current page is within the valid range when watchlist updates
-    if (currentPage > Math.ceil(watchlist.length / itemsPerPage)) {
-      setCurrentPage(1); // Reset to first page if the page number becomes invalid
-    }
-  }, [watchlist]); // Runs whenever the watchlist updates
+    if (currentPage > Math.ceil(watchlist.length / itemsPerPage)) setCurrentPage(1);
+  }, [watchlist]);
 
   useEffect(() => {
-    // Load the last selected tab from storage
     chrome.storage.local.get(['selectedTab'], result => {
-      if (result.selectedTab !== undefined) {
-        setValue(result.selectedTab);
-      }
+      if (result.selectedTab !== undefined) setValue(result.selectedTab);
     });
 
-    // Listen for tab change messages
-    const handleMessage = (message: { tab: React.SetStateAction<number> | undefined }) => {
-      if (message.tab !== undefined) {
-        setValue(message.tab);
-      }
+    const handleMessage = (message: { tab?: number }) => {
+      if (message.tab !== undefined) setValue(message.tab);
     };
-
     chrome.runtime.onMessage.addListener(handleMessage);
     return () => chrome.runtime.onMessage.removeListener(handleMessage);
   }, []);
@@ -268,8 +248,6 @@ const SidePanel = () => {
 
   const paginatedWatchlist = watchlist.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(watchlist.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-
   const lastFetchTime = setting.lastFetchWatchList ? new Date(setting.lastFetchWatchList).toLocaleString() : 'Never';
 
   return (
@@ -282,40 +260,32 @@ const SidePanel = () => {
           width: 400,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
-            width: '400px', // Fixed width for Uniswap-like design
+            width: 400,
             maxWidth: '100vw',
-            height: '100vh', // Full height
+            height: '100vh',
             boxSizing: 'border-box',
             backgroundColor: 'background.default',
             color: 'text.primary',
           },
         }}>
-        <Box p={2} display="flex" flexDirection="column" height="100%">
+        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs
               value={value}
               onChange={handleChange}
-              aria-label="watchlist and wallet tabs"
               variant="fullWidth"
               textColor="primary"
               indicatorColor="primary"
               sx={{
-                '& .MuiTabs-indicator': {
-                  height: 4,
-                  borderRadius: 2,
-                },
+                '& .MuiTabs-indicator': { height: 4, borderRadius: 2 },
                 '& .MuiTab-root': {
                   textTransform: 'none',
                   fontSize: '1rem',
                   fontWeight: 500,
                   minHeight: 48,
-                  color: 'grey.500', // Inactive tabs are gray
-                  '&.Mui-selected': {
-                    color: 'primary.main', // Active tab is primary
-                  },
-                  '&:hover': {
-                    color: 'grey.700', // Darker gray on hover
-                  },
+                  color: 'grey.500',
+                  '&.Mui-selected': { color: 'primary.main' },
+                  '&:hover': { color: 'grey.700' },
                 },
               }}>
               <Tab label="Watch List" {...a11yProps(0)} />
@@ -324,59 +294,52 @@ const SidePanel = () => {
           </Box>
           <Divider />
           <CustomTabPanel value={value} index={0}>
-            <Box textAlign="center" my={2}>
+            <Box sx={{ textAlign: 'center', my: 2 }}>
               <Typography variant="body2" color="gray">
                 Last Fetched: {lastFetchTime}
               </Typography>
             </Box>
             <List>
-              {paginatedWatchlist?.map(item => (
+              {paginatedWatchlist.map(item => (
                 <React.Fragment key={item.guidID}>
-                  <ListItem
-                    alignItems="center"
-                    onClick={() => toggleExpandItem(item.guidID)} // Expand/Collapse on click
-                    sx={{ display: 'block', padding: '0px 0px' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '-webkit-fill-available' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <ListItemAvatar style={{ position: 'relative', minWidth: 40 }}>
-                          {/* Wrapper to ensure proper positioning */}
-                          <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <ListItem onClick={() => toggleExpandItem(item.guidID)} sx={{ display: 'block', p: 0 }}>
+                    <Box sx={{ ...commonStyles.flexBetween, width: '100%' }}>
+                      <Box sx={commonStyles.flexCenter}>
+                        <ListItemAvatar sx={{ position: 'relative', minWidth: 40 }}>
+                          <Box sx={{ position: 'relative', display: 'inline-block' }}>
                             <Avatar
                               src={
                                 item.isPriority
-                                  ? item?.imageUrl.startsWith('https')
-                                    ? item?.imageUrl
-                                    : chrome.runtime.getURL(item?.imageUrl)
-                                  : item?.imageUrl
+                                  ? item.imageUrl.startsWith('https')
+                                    ? item.imageUrl
+                                    : chrome.runtime.getURL(item.imageUrl)
+                                  : item.imageUrl
                               }
                               alt={item.symbol}
                               sx={{ width: 40, height: 40 }}
                             />
-
-                            {/* IconButton overlay */}
                             <IconButton
-                              style={{
+                              size="small"
+                              onClick={e => {
+                                e.stopPropagation();
+                                handleRedirect(item);
+                              }}
+                              sx={{
                                 position: 'absolute',
                                 top: 0,
                                 right: 0,
-                                backgroundColor: 'white', // Optional: Helps visibility
-                                padding: 4,
-                                zIndex: 2, // Higher than Avatar
-                                boxShadow: '0px 2px 5px rgba(0,0,0,0.2)', // Optional: Adds slight elevation
-                              }}
-                              size="small"
-                              onClick={event => {
-                                event.stopPropagation();
-                                handleRedirect(item);
+                                bgcolor: 'white',
+                                p: 0.5,
+                                boxShadow: '0px 2px 5px rgba(0,0,0,0.2)',
                               }}>
                               <OpenInNewIcon fontSize="small" sx={{ fontSize: 10 }} />
                             </IconButton>
-                          </div>
+                          </Box>
                         </ListItemAvatar>
-                        <Box sx={{ marginLeft: 1 }}>
+                        <Box sx={{ ml: 1 }}>
                           <ListItemText
                             primary={
-                              <Typography variant="body1" fontWeight="500">
+                              <Typography variant="body1" fontWeight="500" sx={commonStyles.ellipsisText}>
                                 {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
                               </Typography>
                             }
@@ -388,13 +351,7 @@ const SidePanel = () => {
                           />
                         </Box>
                       </Box>
-
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1.5, // Space between elements
-                        }}>
+                      <Box sx={{ ...commonStyles.flexCenter, gap: 1.5 }}>
                         <Box sx={{ textAlign: 'right' }}>
                           <Typography variant="body2" fontWeight="500">
                             ${formatCustomPrice(Number(item.price))}
@@ -406,24 +363,13 @@ const SidePanel = () => {
                             {Number(item.changeRate24h).toFixed(2)}%
                           </Typography>
                         </Box>
-                        <Box
-                          sx={{
-                            height: '72px',
-                            flex: 1,
-                            display: 'flex',
-                            flexDirection: 'column', // Stack the children vertically
-                            alignItems: 'center', // Center align horizontally
-                          }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                           <IconButton
-                            sx={{
-                              scale: 0.9,
-                            }}
-                            edge="end"
-                            onClick={() => removeCoin(item.url, item.name, item.isPriority)}>
+                            onClick={() => removeCoin(item.url, item.name, item.isPriority)}
+                            sx={{ transform: 'scale(0.9)' }}>
                             <DeleteIcon />
                           </IconButton>
                           <IconButton
-                            edge="end"
                             color={thresholdList.find(i => i.id === item.guidID)?.active ? 'success' : 'error'}>
                             {thresholdList.find(i => i.id === item.guidID)?.active ? (
                               <NotificationsActiveIcon />
@@ -435,30 +381,20 @@ const SidePanel = () => {
                       </Box>
                     </Box>
                     {item.isPriority === false && setting.changeRate && (
-                      <Box>
-                        <ChangeRateCard
-                          changeRate24h={item.changeRate24h}
-                          changeRate5m={item.changeRate5m}
-                          changeRate1h={item.changeRate1h}
-                          changeRate6h={item.changeRate6h}
-                        />
-                      </Box>
+                      <ChangeRateCard
+                        changeRate24h={item.changeRate24h}
+                        changeRate5m={item.changeRate5m}
+                        changeRate1h={item.changeRate1h}
+                        changeRate6h={item.changeRate6h}
+                      />
                     )}
                   </ListItem>
                   <Collapse in={expandedItem === item.guidID} timeout="auto" unmountOnExit>
-                    <Box
-                      sx={{
-                        padding: 2,
-                        borderRadius: 1,
-                        margin: 1,
-                      }}>
+                    <Box sx={{ p: 2, borderRadius: 1, m: 1 }}>
                       <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                         Notification Threshold for {item.name.length > 10 ? `${item.name.slice(0, 10)}...` : item.name}
                       </Typography>
-
-                      {/* First Row: Limits and Price */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginBottom: 2 }}>
-                        {/* Lower Limit Input */}
+                      <Box sx={{ ...commonStyles.flexCenter, gap: 1, mb: 2 }}>
                         <TextField
                           disabled={threshold.active}
                           label="Lower Limit"
@@ -468,35 +404,19 @@ const SidePanel = () => {
                           size="small"
                           sx={{
                             flex: 1,
-                            '& .MuiInputBase-input': {
-                              textAlign: 'left', // Right-align the text in the input field
-                            },
-                            '& .MuiInputLabel-root': {
-                              color: '#007BFF', // Default label color
-                            },
-                            '& .MuiOutlinedInput-root': {
-                              '& fieldset': {
-                                borderColor: '#007BFF', // Default border color
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-disabled': {
-                              color: 'grey.400', // Label color when disabled
-                            },
-                            '& .MuiInputBase-input.Mui-disabled': {
-                              color: 'grey.500', // Set text color for disabled state
-                            },
-                            '& .MuiOutlinedInput-notchedOutline': {
-                              borderColor: 'grey.300', // Optional: Customize border color for disabled state
-                            },
+                            '& .MuiInputBase-input': { textAlign: 'left' },
+                            '& .MuiInputLabel-root': { color: 'primary.main' },
+                            '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'primary.main' } },
+                            '& .MuiInputLabel-root.Mui-disabled': { color: 'grey.400' },
+                            '& .MuiInputBase-input.Mui-disabled': { color: 'grey.500' },
+                            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'grey.300' },
                           }}
-                          onChange={event => {
-                            const newValue = event.target.value;
-                            updateLowerThreshold(newValue, item); // Update the lower threshold
-                            checkForAlerts(item, newValue, 'lower'); // Trigger alert check immediately
+                          onChange={e => {
+                            const newValue = e.target.value;
+                            updateLowerThreshold(newValue, item);
+                            checkForAlerts(item, newValue, 'lower');
                           }}
                         />
-
-                        {/* Upper Limit Input */}
                         <TextField
                           disabled={threshold.active}
                           label="Upper Limit"
@@ -506,33 +426,20 @@ const SidePanel = () => {
                           size="small"
                           sx={{
                             flex: 1,
-                            '& .MuiInputBase-input': {
-                              textAlign: 'right', // Right-align the text in the input field
-                            },
-                            '& .MuiInputLabel-root': {
-                              color: '#007BFF', // Default label color
-                            },
-                            '& .MuiOutlinedInput-root': {
-                              '& fieldset': {
-                                borderColor: '#007BFF', // Default border color
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-disabled': {
-                              color: 'grey.400', // Label color when disabled
-                            },
+                            '& .MuiInputBase-input': { textAlign: 'right' },
+                            '& .MuiInputLabel-root': { color: 'primary.main' },
+                            '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'primary.main' } },
+                            '& .MuiInputLabel-root.Mui-disabled': { color: 'grey.400' },
                           }}
-                          onChange={event => {
-                            const newValue = event.target.value;
-                            updateUpperThreshold(newValue, item); // Update the upper threshold
-                            checkForAlerts(item, newValue, 'upper'); // Trigger alert check immediately
+                          onChange={e => {
+                            const newValue = e.target.value;
+                            updateUpperThreshold(newValue, item);
+                            checkForAlerts(item, newValue, 'upper');
                           }}
                         />
                       </Box>
-
-                      {/* Second Row: Percentage Buttons */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        {/* Lower Limit Buttons */}
-                        <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Box sx={{ ...commonStyles.flexCenter, gap: 2 }}>
+                        <Box sx={{ flex: 1, ...commonStyles.flexCenter, gap: 1, flexWrap: 'wrap' }}>
                           {[10, 20, 50].map(percent => (
                             <Button
                               disabled={threshold.active}
@@ -540,33 +447,28 @@ const SidePanel = () => {
                               variant="outlined"
                               size="small"
                               onClick={() => {
-                                if (Number(item.price) < 0.00001) {
-                                  const adjustedPrice = (Number(item.price) * (1 - percent / 100)).toFixed(18); // Ensure 18 decimal precision
-                                  updateLowerThreshold(adjustedPrice, item); // Pass as a string to avoid scientific notation
-                                } else {
-                                  const adjustedPrice = (Number(item.price) * (1 - percent / 100)).toFixed(4); // Ensure 18 decimal precision
-                                  updateLowerThreshold(adjustedPrice.toString(), item); // Pass as a string to avoid scientific notation
-                                }
+                                const adjustedPrice =
+                                  Number(item.price) < 0.00001
+                                    ? (Number(item.price) * (1 - percent / 100)).toFixed(18)
+                                    : (Number(item.price) * (1 - percent / 100)).toFixed(4);
+                                updateLowerThreshold(adjustedPrice, item);
                               }}>
                               -{percent}%
                             </Button>
                           ))}
                         </Box>
-
-                        {/* Spacer */}
-
-                        <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <Box sx={{ flex: 1, ...commonStyles.flexCenter, flexDirection: 'column', gap: 1 }}>
                           <Typography
                             variant="body2"
                             sx={{
                               textAlign: 'center',
-                              minWidth: 80, // Adjust width as needed
-                              padding: 1,
-                              border: '1px solid #ccc',
+                              minWidth: 80,
+                              p: 1,
+                              border: 1,
+                              borderColor: 'grey.300',
                               borderRadius: 1,
                               fontWeight: 'bold',
-                              marginBottom: '10px',
-                              width: '-webkit-fill-available',
+                              width: '100%',
                             }}>
                             ${formatCustomPrice(Number(item.price))}
                           </Typography>
@@ -574,17 +476,18 @@ const SidePanel = () => {
                             variant="contained"
                             color={threshold?.active ? 'success' : 'error'}
                             startIcon={threshold?.active ? <NotificationsActiveIcon /> : <NotificationsOffIcon />}
-                            onClick={() => toggleNotification()} // Function to toggle active state
-                            sx={{
-                              '& .MuiButton-startIcon': { marginRight: '0px', marginLeft: '0px' },
-                              textTransform: 'none', // Keep the text case as is
-                              padding: '8px 16px',
-                              width: '-webkit-fill-available',
-                            }}></Button>
+                            onClick={toggleNotification}
+                            sx={{ textTransform: 'none', width: '100%', '& .MuiButton-startIcon': { mr: 0, ml: 0 } }}
+                          />
                         </Box>
-
-                        {/* Upper Limit Buttons */}
-                        <Box sx={{ flex: 1, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        <Box
+                          sx={{
+                            flex: 1,
+                            ...commonStyles.flexCenter,
+                            gap: 1,
+                            flexWrap: 'wrap',
+                            justifyContent: 'flex-end',
+                          }}>
                           {[10, 20, 50].map(percent => (
                             <Button
                               disabled={threshold.active}
@@ -592,22 +495,19 @@ const SidePanel = () => {
                               variant="outlined"
                               size="small"
                               onClick={() => {
-                                if (Number(item.price) < 0.00001) {
-                                  const adjustedPrice = (Number(item.price) * (1 + percent / 100)).toFixed(18); // Ensure 18 decimal precision
-                                  updateUpperThreshold(adjustedPrice, item); // Pass as a string to avoid scientific notation
-                                } else {
-                                  const adjustedPrice = (Number(item.price) * (1 + percent / 100)).toFixed(4); // Ensure 18 decimal precision
-                                  updateUpperThreshold(adjustedPrice.toString(), item); // Pass as a string to avoid scientific notation
-                                }
+                                const adjustedPrice =
+                                  Number(item.price) < 0.00001
+                                    ? (Number(item.price) * (1 + percent / 100)).toFixed(18)
+                                    : (Number(item.price) * (1 + percent / 100)).toFixed(4);
+                                updateUpperThreshold(adjustedPrice, item);
                               }}>
                               +{percent}%
                             </Button>
                           ))}
                         </Box>
                       </Box>
-
                       {alertMessage && (
-                        <Box p={1} mb={2} border="1px solid" borderColor="error.main" borderRadius={2}>
+                        <Box sx={{ p: 1, mb: 2, border: 1, borderColor: 'error.main', borderRadius: 2 }}>
                           <Typography variant="body2" color="error">
                             {alertMessage}
                           </Typography>
@@ -619,9 +519,8 @@ const SidePanel = () => {
                 </React.Fragment>
               ))}
             </List>
-
             {totalPages > 1 && (
-              <Box display="flex" justifyContent="center" mt={2}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                 <Pagination
                   count={totalPages}
                   page={currentPage}
@@ -635,7 +534,7 @@ const SidePanel = () => {
           <CustomTabPanel value={value} index={1}>
             <CoinBalanceList tokenBalance={tokenBalance} />
           </CustomTabPanel>
-          <Box mt="auto" p={2} textAlign="center" borderTop="1px solid #ccc">
+          <Box sx={{ mt: 'auto', p: 2, textAlign: 'center', borderTop: 1, borderColor: 'grey.300' }}>
             <Button variant="contained" onClick={toggleModal}>
               Open Search | Ctrl + /
             </Button>

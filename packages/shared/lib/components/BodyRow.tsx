@@ -69,15 +69,44 @@ function formatCustomPrice(price: number): string {
   return parseFloat(priceString).toString(); // Remove trailing zeros from normal decimals
 }
 
+// Styled component with cleaner definition
 const Item = styled(Paper)(({ theme }) => ({
   backgroundColor: theme.palette.background.default,
-  ...theme.typography.body2,
   padding: theme.spacing(0.5),
   textAlign: 'center',
   flexGrow: 1,
-  border: `2px solid ${theme.palette.divider}`, // Thicker and more visible border
-  borderRadius: theme.shape.borderRadius, // Optional: keep border rounded for better visuals
+  border: `2px solid ${theme.palette.divider}`,
+  borderRadius: theme.shape.borderRadius,
 }));
+
+// Common styles object to reuse
+const commonStyles = {
+  tableRow: (theme: any) => ({
+    backgroundColor: 'background.default',
+    color: 'text.primary',
+    cursor: 'pointer',
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    '&:hover': {
+      backgroundColor: 'action.hover',
+      border: '2px solid',
+      borderColor: 'primary.main',
+      borderRadius: '4px',
+    },
+  }),
+  ellipsisCell: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  flexCenter: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  iconButton: {
+    width: 20,
+    height: 20,
+  },
+};
 
 const MiniChartIframe = React.memo(({ src, onLoad }: { src: string; onLoad: () => void }) => (
   <iframe src={src} width="100%" height="220" frameBorder="0" style={{ display: 'block' }} onLoad={onLoad} />
@@ -301,170 +330,101 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
 
   return (
     <>
-      <TableRow
-        sx={{
-          backgroundColor: 'background.default', // Theme-aware
-          color: 'text.primary', // Theme-aware
-          cursor: 'pointer', // Indicate that the row is clickable
-          borderColor: 'black',
-          '&:hover': {
-            backgroundColor: 'action.hover', // Theme-aware hover background color
-            border: '2px solid', // Add a border on hover
-            borderColor: 'primary.main', // Theme-aware border color
-            borderRadius: '4px', // Optional: Add rounded corners for better visuals
-          },
-          borderBottom: `1px solid ${theme.palette.divider}`, // White line or divider line at the bottom
-        }}
-        onClick={() => window.open(`https://dexscreener.com/${row.chainId}/${row.pairAddress}`, '_blank')}>
-        {/* onClick={() => toggleExpandItem(row.pairAddress)}> */}
+      <TableRow sx={commonStyles.tableRow}>
         <TableCell>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Box sx={{ ...commonStyles.flexCenter, flexDirection: 'column', gap: 1 }}>
+            <Box sx={{ ...commonStyles.flexCenter, gap: 1 }}>
               <IconButton
                 sx={{
-                  width: 20,
-                  height: 20,
-                  backgroundColor: 'primary.main', // Add background color
-                  borderRadius: '50%', // Make it circular
+                  ...commonStyles.iconButton,
+                  backgroundColor: 'primary.main',
+                  borderRadius: '50%',
                 }}
-                onClick={event => {
-                  event.stopPropagation();
+                onClick={e => {
+                  e.stopPropagation();
                   toggleExpandItem(row.pairAddress);
                 }}>
                 {expandedItem === row.pairAddress ? <ExpandLessIcon /> : <ExpandMoreIcon />}
               </IconButton>
-              {/* First Row - Star Icon */}
               <IconButton
-                sx={{
-                  width: 20,
-                  height: 20,
-                }}
-                onClick={event => {
-                  event.stopPropagation();
+                sx={commonStyles.iconButton}
+                onClick={e => {
+                  e.stopPropagation();
                   handleToggle();
                 }}
                 color={isInWatchlist ? 'warning' : 'default'}>
                 {isInWatchlist ? <StarIcon /> : <StarBorderIcon />}
               </IconButton>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            </Box>
+            <Box sx={{ ...commonStyles.flexCenter, gap: 1 }}>
               <Tooltip title="Contract Address verified on DexScreener. Redirect?" arrow>
-                <IconButton
-                  style={{ backgroundColor: 'white', padding: 2 }}
-                  size="small"
-                  onClick={event => {
-                    // event.stopPropagation();
-                    // handleRedirect(item);
-                  }}>
-                  <Avatar
-                    src={chrome.runtime.getURL(DexscreenerIcon)}
-                    sx={{
-                      width: 20,
-                      height: 20,
-                    }}
-                  />
+                <IconButton sx={{ backgroundColor: 'white', p: 0.25 }} size="small">
+                  <Avatar src={chrome.runtime.getURL(DexscreenerIcon)} sx={commonStyles.iconButton} />
                 </IconButton>
               </Tooltip>
-              {/* Show CoinGecko Icon only if contractAddress is in storage */}
               {memoizedContractAddresses?.find(obj =>
                 obj?.contracts?.includes(row.baseToken.address.toLocaleLowerCase()),
               ) && (
                 <Tooltip title="Contract Address verified on CoinGecko. Redirect?" arrow>
                   <IconButton
-                    style={{ backgroundColor: 'white', padding: 2 }}
+                    sx={{ backgroundColor: 'white', p: 0.25 }}
                     size="small"
-                    onClick={event => {
-                      event.stopPropagation();
-                      window.open(`https://www.coingecko.com/en/coins/` + row.baseToken.address, '_blank');
-                      // window.open(`https://www.geckoterminal.com/` + row.chainId + '/pools/' + row.baseToken.address, '_blank');
+                    onClick={e => {
+                      e.stopPropagation();
+                      window.open(`https://www.coingecko.com/en/coins/${row.baseToken.address}`, '_blank');
                     }}>
-                    <Avatar
-                      src={chrome.runtime.getURL(CoinGeckoIcon)}
-                      sx={{
-                        width: 20,
-                        height: 20,
-                      }}
-                    />
+                    <Avatar src={chrome.runtime.getURL(CoinGeckoIcon)} sx={commonStyles.iconButton} />
                   </IconButton>
                 </Tooltip>
               )}
-            </div>
-          </div>
-        </TableCell>
-        <TableCell
-          title={`Chain : ${row.chainId.toUpperCase()} / Dex : ${row.dexId.toUpperCase()}`} // The full text will appear when you hover over the cell
-          style={{
-            overflow: 'hidden', // Hide the overflowed text
-            textOverflow: 'ellipsis', // Show ellipsis when the text overflows
-            whiteSpace: 'nowrap', // Prevent text from wrapping
-          }}
-          sx={theme => ({
-            [theme.breakpoints.down('md')]: {
-              position: 'sticky',
-              left: 48,
-              zIndex: 10,
-              backgroundColor: '#121212',
-            },
-          })}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Box sx={{ flexGrow: 1 }}>
-              <Grid container direction="column">
-                <Grid>
-                  <Avatar
-                    src={`https://dd.dexscreener.com/ds-data/chains/${row.chainId}.png`}
-                    sx={{
-                      width: 30,
-                      height: 30,
-                    }}
-                  />
-                </Grid>
-                <Grid>
-                  <Avatar
-                    src={`https://dd.dexscreener.com/ds-data/dexes/${row.dexId}.png"`}
-                    sx={{
-                      width: 30,
-                      height: 30,
-                    }}
-                  />
-                </Grid>
-              </Grid>
             </Box>
           </Box>
         </TableCell>
         <TableCell
-          title={row.baseToken.name} // The full text will appear when you hover over the cell
-          style={{
-            overflow: 'hidden', // Hide the overflowed text
-            textOverflow: 'ellipsis', // Show ellipsis when the text overflows
-            whiteSpace: 'nowrap', // Prevent text from wrapping
-          }}
-          padding="none"
-          sx={theme => ({
+          title={`Chain: ${row.chainId.toUpperCase()} / Dex: ${row.dexId.toUpperCase()}`}
+          sx={{
+            ...commonStyles.ellipsisCell,
             [theme.breakpoints.down('md')]: {
               position: 'sticky',
               left: 48,
               zIndex: 10,
-              backgroundColor: '#121212',
+              backgroundColor: 'background.default',
             },
-          })}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Avatar
-              src={row.info?.imageUrl}
-              sx={{
-                width: 50,
-                height: 50,
-                mr: 1,
-              }}
-            />
+          }}>
+          <Box sx={commonStyles.flexCenter}>
+            <Grid container direction="column" spacing={1}>
+              <Grid>
+                <Avatar
+                  src={`https://dd.dexscreener.com/ds-data/chains/${row.chainId}.png`}
+                  sx={{ width: 30, height: 30 }}
+                />
+              </Grid>
+              <Grid>
+                <Avatar
+                  src={`https://dd.dexscreener.com/ds-data/dexes/${row.dexId}.png`}
+                  sx={{ width: 30, height: 30 }}
+                />
+              </Grid>
+            </Grid>
           </Box>
         </TableCell>
         <TableCell
-          style={{
-            overflow: 'hidden', // Hide the overflowed text
-            textOverflow: 'ellipsis', // Show ellipsis when the text overflows
-            whiteSpace: 'nowrap', // Prevent text from wrapping
+          title={row.baseToken.name}
+          sx={{
+            ...commonStyles.ellipsisCell,
+            p: 0,
+            [theme.breakpoints.down('md')]: {
+              position: 'sticky',
+              left: 48,
+              zIndex: 10,
+              backgroundColor: 'background.default',
+            },
           }}>
+          <Box sx={{ ...commonStyles.flexCenter }}>
+            <Avatar src={row.info?.imageUrl} sx={{ width: 50, height: 50, mr: 1 }} />
+          </Box>
+        </TableCell>
+        <TableCell sx={commonStyles.ellipsisCell}>
           <Tooltip
             title={
               detectBlockchain(row.baseToken.name)
@@ -487,48 +447,29 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
                 </Grid>
                 <Grid size={6}>
                   <Item>
-                    <div>
-                      <span>MKT Cap: </span>
-                      <SwitchTransition>
-                        <CSSTransition
-                          key={row.pairAddress} // Use a stable key
-                          classNames="fade"
-                          timeout={300} // Adjust as needed for transition speed
-                        >
-                          <span>{marketCap}</span>
-                        </CSSTransition>
-                      </SwitchTransition>
-                    </div>
+                    <span>MKT Cap: </span>
+                    <SwitchTransition>
+                      <CSSTransition key={row.pairAddress} classNames="fade" timeout={300}>
+                        <span>{marketCap}</span>
+                      </CSSTransition>
+                    </SwitchTransition>
                   </Item>
                 </Grid>
                 <Grid size={5}>
                   <Item>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center', // Center both the text and chart horizontally
-                        gap: '8px', // Optional: add space between the text and chart
-                      }}>
-                      <span style={{ marginRight: '8px' }}>VOL 24H: </span>
-
+                    <Box sx={{ ...commonStyles.flexCenter, justifyContent: 'center', gap: 1 }}>
+                      <span>VOL 24H: </span>
                       <SwitchTransition>
-                        <CSSTransition
-                          key={row.pairAddress} // Use a stable key
-                          classNames="fade"
-                          timeout={300} // Adjust as needed for transition speed
-                        >
+                        <CSSTransition key={row.pairAddress} classNames="fade" timeout={300}>
                           <span>{volume_24}</span>
                         </CSSTransition>
                       </SwitchTransition>
-
-                      {/* Add space between chart and volume text */}
-                    </div>
+                    </Box>
                   </Item>
                 </Grid>
                 <Grid size={1}>
                   <Tooltip title={`Buys: ${buys}, Sells: ${sells}`} arrow>
-                    <Box sx={{ marginLeft: '8px' }} width={30} height={30}>
+                    <Box sx={{ ml: 1 }} width={30} height={30}>
                       <BuySellChart buys={buys} sells={sells} />
                     </Box>
                   </Tooltip>
@@ -537,86 +478,33 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
             </Box>
           </Tooltip>
         </TableCell>
-
         <SwitchTransition>
           <Fade key={price}>
             <TableCell align="right">{price}</TableCell>
           </Fade>
         </SwitchTransition>
-
-        <TableCell
-          style={{
-            overflow: 'hidden', // Hide the overflowed text
-            textOverflow: 'ellipsis', // Show ellipsis when the text overflows
-            whiteSpace: 'nowrap', // Prevent text from wrapping
-            width: '230px',
-          }}>
+        <TableCell sx={{ ...commonStyles.ellipsisCell, width: '230px' }}>
           <Box sx={{ flexGrow: 1 }}>
             <Grid container spacing={0} rowSpacing={1}>
-              <Grid size={6}>
-                <Item>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ display: 'inline-block' }}>5M:</span>
-                    <SwitchTransition>
-                      <CSSTransition
-                        key={percent_change5m} // Ensure unique key for transitions
-                        classNames="fade"
-                        timeout={300} // Adjust as needed for transition speed
-                      >
-                        <span style={{ display: 'inline-block' }}>{renderPercentage(Number(percent_change5m))}</span>
-                      </CSSTransition>
-                    </SwitchTransition>
-                  </div>
-                </Item>
-              </Grid>
-              <Grid size={6}>
-                <Item>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ display: 'inline-block' }}>&nbsp;6H:</span>
-                    <SwitchTransition>
-                      <CSSTransition
-                        key={percent_change6h} // Ensure unique key for transitions
-                        classNames="fade"
-                        timeout={300} // Adjust as needed for transition speed
-                      >
-                        <span style={{ display: 'inline-block' }}>{renderPercentage(Number(percent_change6h))}</span>
-                      </CSSTransition>
-                    </SwitchTransition>
-                  </div>
-                </Item>
-              </Grid>
-              <Grid size={6}>
-                <Item>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ display: 'inline-block' }}>1H:</span>
-                    <SwitchTransition>
-                      <CSSTransition
-                        key={percent_change1h} // Ensure unique key for transitions
-                        classNames="fade"
-                        timeout={300} // Adjust as needed for transition speed
-                      >
-                        <span style={{ display: 'inline-block' }}>{renderPercentage(Number(percent_change1h))}</span>
-                      </CSSTransition>
-                    </SwitchTransition>
-                  </div>
-                </Item>
-              </Grid>
-              <Grid size={6}>
-                <Item>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ display: 'inline-block' }}>24H:</span>
-                    <SwitchTransition>
-                      <CSSTransition
-                        key={percent_change24h} // Ensure unique key for transitions
-                        classNames="fade"
-                        timeout={300} // Adjust as needed for transition speed
-                      >
-                        <span style={{ display: 'inline-block' }}>{renderPercentage(Number(percent_change24h))}</span>
-                      </CSSTransition>
-                    </SwitchTransition>
-                  </div>
-                </Item>
-              </Grid>
+              {[
+                { label: '5M', value: percent_change5m },
+                { label: '6H', value: percent_change6h },
+                { label: '1H', value: percent_change1h },
+                { label: '24H', value: percent_change24h },
+              ].map(({ label, value }) => (
+                <Grid size={6} key={label}>
+                  <Item>
+                    <Box sx={{ ...commonStyles.flexCenter, gap: 1 }}>
+                      <span>{label}:</span>
+                      <SwitchTransition>
+                        <CSSTransition key={value} classNames="fade" timeout={300}>
+                          <span>{renderPercentage(Number(value))}</span>
+                        </CSSTransition>
+                      </SwitchTransition>
+                    </Box>
+                  </Item>
+                </Grid>
+              ))}
             </Grid>
           </Box>
         </TableCell>
@@ -625,45 +513,35 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
         <TableRow
           sx={{
             backgroundColor: 'background.default',
-            color: theme.palette.background.default,
             border: `2px solid ${theme.palette.divider}`,
             borderRadius: theme.shape.borderRadius,
           }}>
-          <TableCell colSpan={6} style={{ padding: '10px' }}>
+          <TableCell colSpan={6} sx={{ p: 1.25 }}>
             <Box sx={{ flexGrow: 1 }}>
               <Grid container spacing={0} rowSpacing={1}>
                 <Grid size={6}>
                   <Item>
-                    <div>
-                      <span>Liquidity: </span>
-                      <span>{marketCap}</span>
-                    </div>
+                    <span>Liquidity: </span>
+                    <span>{marketCap}</span>
                   </Item>
                 </Grid>
                 <Grid size={6}>
                   <Item>
-                    <div>
-                      <span>FDV: </span>
-                      <span>{fdv}</span>
-                    </div>
+                    <span>FDV: </span>
+                    <span>{fdv}</span>
                   </Item>
                 </Grid>
                 <Grid size={6}>
                   <Item>
-                    <div>
-                      <span>CA: {row.pairAddress}</span>
-                    </div>
+                    <span>CA: {row.pairAddress}</span>
                   </Item>
                 </Grid>
                 <Grid size={6}>
                   <Item>
-                    <div>
-                      <span>Pair Created: </span>
-                      <span>{calculateAge(new Date(row.pairCreatedAt).toLocaleString())} ago</span>
-                    </div>
+                    <span>Pair Created: </span>
+                    <span>{calculateAge(new Date(row.pairCreatedAt).toLocaleString())} ago</span>
                   </Item>
                 </Grid>
-                {/* TradingView Widget */}
                 <Grid size={12}>
                   <Item>
                     {isSymbolValid === null ? (
