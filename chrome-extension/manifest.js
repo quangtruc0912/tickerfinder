@@ -25,13 +25,7 @@ function withSidePanel(manifest) {
   });
 }
 
-const allowedWebsites = [
-  'https://twitter.com/*',
-  'https://x.com/*',
-  'https://facebook.com/*',
-  'https://www.facebook.com/*',
-];
-const allowedAPIs = ['https://api.dexscreener.com/*', 'https://api.kucoin.com/*'];
+const allowedWebsites = ['<all_urls>'];
 
 /**
  * After changing, please reload the extension at `chrome://extensions`
@@ -47,7 +41,7 @@ const manifest = withSidePanel({
   name: '__MSG_extensionName__',
   version: packageJson.version,
   description: '__MSG_extensionDescription__',
-  host_permissions: [...allowedWebsites, ...allowedAPIs], // Twitter/X and APIs
+  host_permissions: [...allowedWebsites], // Twitter/X and APIs
   permissions: ['storage', 'scripting', 'notifications', 'contextMenus'],
   options_page: 'options/index.html',
   commands: {
