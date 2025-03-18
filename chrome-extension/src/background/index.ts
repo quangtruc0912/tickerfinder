@@ -463,7 +463,6 @@ chrome.runtime.onInstalled.addListener(async details => {
     settingStorage.ensureSetting();
     chrome.storage.local.set({ selectedTab: 1 });
     await DataCorrection();
-    chrome.runtime.openOptionsPage();
   }
 });
 

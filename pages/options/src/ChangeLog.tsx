@@ -42,6 +42,12 @@ export const ChangeLog = () => {
       changes: ['🔥 Add Wallet tracking.', '✨ Intructions / Demo video for new user'],
       devComments: 'None',
     },
+    {
+      version: '0.2.1',
+      date: 'March 18, 2025',
+      changes: ['🔥 You can now search your favorite coin on any website.', '✨ Bug fixing'],
+      devComments: 'None',
+    },
   ];
 
   return (

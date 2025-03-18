@@ -15,7 +15,7 @@ export const Instructions = () => {
         padding: '1rem',
         color: isLight ? 'black' : 'white',
       }}>
-      <Box sx={{ p: 2, bgcolor: '#fff3cd', borderRadius: 2, boxShadow: 1 }}>
+      {/* <Box sx={{ p: 2, bgcolor: '#fff3cd', borderRadius: 2, boxShadow: 1 }}>
         <Typography variant="h6" fontWeight={600} color="warning.main" gutterBottom>
           Upcoming Permission Update (v0.2.0) (current version: v0.1.8)
         </Typography>
@@ -44,7 +44,7 @@ export const Instructions = () => {
             Github
           </a>
         </Typography>
-      </Box>
+      </Box> */}
       <Typography variant="h5" fontWeight={600} gutterBottom>
         How to Use the Extension / Features.
       </Typography>
@@ -61,7 +61,11 @@ export const Instructions = () => {
 
       <List>
         {[
-          { primary: '🔹 Search your favorite coin', secondary: 'Press [ Ctrl + / ] to open the Search box.' },
+          {
+            primary: '🔹 Search your favorite coin',
+            secondary:
+              'Press [ Ctrl + / ] to open the Search box.(on your website eg: google.com, youtube.com not this page)',
+          },
           {
             primary: '🔹 Open the Watch List coin everywhere',
             secondary: 'Press [ Ctrl + B ] to toggle the Watch List.',
