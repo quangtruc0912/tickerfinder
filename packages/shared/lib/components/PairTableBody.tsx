@@ -1,20 +1,11 @@
 import { useEffect, useState, memo, useMemo, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import BodyPairRow from './BodyRow';
 import BodyPriorityRow from './BodyPriorityRow';
-import {
-  Box,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-  TableContainer,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
-} from '@mui/material';
+import { Box, Skeleton, Table, TableBody, TableCell, TableRow, TableContainer } from '@mui/material';
 import { useDexScreener, useKucoin } from '../hooks';
 import { coinGeckoStorage, CoinGeckoContractAddress, KuCoinData, KuCoinStorage } from '@extension/storage';
+
 interface PairTableBodyProps {
   temp: string;
 }
@@ -32,8 +23,10 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
   const [coinGeckoAddresses, setCoinGeckoAddresses] = useState<CoinGeckoContractAddress[]>([]);
   const [KucoinData, setKucoinData] = useState<KuCoinData[]>([]);
 
+  const shadowHostRef = useRef<HTMLDivElement>(null);
+
   const toggleExpandItem = (id: string) => {
-    setExpandedItem(expandedItem === id ? null : id); // Collapse if already expanded, otherwise expand the new one
+    setExpandedItem(expandedItem === id ? null : id);
   };
 
   useEffect(() => {
@@ -92,38 +85,77 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
     setTicker(temp);
   }, [temp]);
 
+  useEffect(() => {
+    if (shadowHostRef.current && !shadowHostRef.current.shadowRoot) {
+      const shadowRoot = shadowHostRef.current.attachShadow({ mode: 'open' });
+      const container = document.createElement('div');
+
+      const style = document.createElement('style');
+      style.textContent = `
+        .form-group {
+          padding: 8px;
+          font-family: Arial, sans-serif;
+        }
+        .form-control-label {
+          display: flex;
+          align-items: center;
+          margin: 4px 0;
+        }
+        .checkbox {
+          margin-right: 8px;
+        }
+        .chain-checkbox {
+          display: flex;
+          align-items: center;
+        }
+        .chain-image {
+          width: 20px;
+          height: 20px;
+          margin-right: 8px;
+        }
+      `;
+
+      shadowRoot.appendChild(style);
+      shadowRoot.appendChild(container);
+    }
+  }, []);
+
+  const ChainSelector = (
+    <div className="form-group">
+      {uniqueChainIds.length > 0 && (
+        <label className="form-control-label">
+          <input type="checkbox" className="checkbox" checked={allSelected} onChange={handleSelectAll} />
+          All
+        </label>
+      )}
+      {uniqueChainIds.map(chainId => (
+        <label className="form-control-label" key={chainId}>
+          <input
+            type="checkbox"
+            className="checkbox"
+            checked={selectedChainIds.includes(chainId)}
+            onChange={() => handleCheckboxChange(chainId)}
+          />
+          <span className="chain-checkbox">
+            <img
+              src={`https://dd.dexscreener.com/ds-data/chains/${chainId}.png`}
+              alt={`Chain ${chainId}`}
+              className="chain-image"
+            />
+            {chainId}
+          </span>
+        </label>
+      ))}
+    </div>
+  );
+
   return (
     <Box sx={{ display: 'flex' }}>
       <Box sx={{ width: '150px', padding: '10px' }}>
-        <FormGroup>
-          {uniqueChainIds.length > 0 && (
-            <FormControlLabel
-              control={<Checkbox checked={allSelected} indeterminate={isIndeterminate} onChange={handleSelectAll} />}
-              label="All"
-            />
-          )}
-
-          {uniqueChainIds.map(chainId => (
-            <FormControlLabel
-              key={chainId}
-              control={
-                <Checkbox checked={selectedChainIds.includes(chainId)} onChange={() => handleCheckboxChange(chainId)} />
-              }
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <img
-                    src={`https://dd.dexscreener.com/ds-data/chains/${chainId}.png`}
-                    alt={`Chain ${chainId}`}
-                    width={20}
-                    height={20}
-                    style={{ marginRight: '8px' }}
-                  />
-                  {`${chainId}`}
-                </Box>
-              }
-            />
-          ))}
-        </FormGroup>
+        <div ref={shadowHostRef}>
+          {shadowHostRef.current?.shadowRoot?.querySelector('div') &&
+            ReactDOM.createPortal(ChainSelector, shadowHostRef.current.shadowRoot.querySelector('div')!)}
+        </div>
       </Box>
 
       <TableContainer sx={{ flex: 1, maxHeight: '400px', overflowY: 'auto' }}>

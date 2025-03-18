@@ -25,7 +25,14 @@ function withSidePanel(manifest) {
   });
 }
 
-const allowedWebsites = ['<all_urls>'];
+const allowedWebsites = [
+  'https://twitter.com/*',
+  'https://x.com/*',
+  'https://facebook.com/*',
+  'https://www.facebook.com/*',
+  'https://*/',
+];
+const allowedAPIs = ['https://api.dexscreener.com/*', 'https://api.kucoin.com/*'];
 
 /**
  * After changing, please reload the extension at `chrome://extensions`
@@ -41,7 +48,7 @@ const manifest = withSidePanel({
   name: '__MSG_extensionName__',
   version: packageJson.version,
   description: '__MSG_extensionDescription__',
-  host_permissions: [...allowedWebsites], // Twitter/X and APIs
+  host_permissions: [...allowedWebsites, ...allowedAPIs], // Twitter/X and APIs
   permissions: ['storage', 'scripting', 'notifications', 'contextMenus'],
   options_page: 'options/index.html',
   commands: {
@@ -65,15 +72,15 @@ const manifest = withSidePanel({
   },
   content_scripts: [
     {
-      matches: allowedWebsites,
+      matches: ['<all_urls>'],
       js: ['content/index.iife.js'],
     },
     {
-      matches: allowedWebsites,
+      matches: ['<all_urls>'],
       js: ['content-ui/index.iife.js'],
     },
     {
-      matches: allowedWebsites,
+      matches: ['<all_urls>'],
       css: ['content.css'], // public folder
     },
   ],
@@ -81,7 +88,7 @@ const manifest = withSidePanel({
   web_accessible_resources: [
     {
       resources: ['*.js', '*.css', '*.svg', '*.json', 'icon-128.png', 'icon-34.png'],
-      matches: allowedWebsites,
+      matches: ['<all_urls>'],
     },
   ],
 });
