@@ -24,12 +24,35 @@ export type WatchlistItem = {
   price: string;
   isPriority: boolean;
   imageUrl: string;
+  index: number;
 };
 const WATCHLIST_KEY = 'WATCH_LIST_EXT';
 const THRESHOLD_KEY = 'THRESHOLD';
 
-//clear stuff
-// chrome.storage.local.clear();
+const defaultWatchlistItem: WatchlistItem = {
+  guidID: '',
+  name: '',
+  address: '',
+  symbol: '',
+  url: '',
+  dexId: '',
+  chainId: '',
+  changeRate24h: '0',
+  changeRate5m: '0',
+  changeRate1h: '0',
+  changeRate6h: '0',
+  price: '0',
+  isPriority: false,
+  imageUrl: '',
+  index: -1, // Default to -1 to indicate it's unset
+};
+
+function ensureSetting(obj: Partial<WatchlistItem>): WatchlistItem {
+  return {
+    ...defaultWatchlistItem,
+    ...obj,
+  };
+}
 
 type IWatchListStorage = BaseStorage<WatchlistItem[]> & {
   addToWatchlist: (item: WatchlistItem) => Promise<void>;
@@ -37,6 +60,8 @@ type IWatchListStorage = BaseStorage<WatchlistItem[]> & {
   removeFromWatchlist: (address: string) => Promise<void>;
   removePriorityFromWatchlist: (name: string) => Promise<void>;
   getWatchlist: () => Promise<WatchlistItem[]>;
+  maxIndex: () => Promise<number>;
+  ensureSetting: () => Promise<void>;
 };
 
 const watchListStorage = createStorage<WatchlistItem[]>(WATCHLIST_KEY, [], {
@@ -84,6 +109,30 @@ export const useWatchListStorage: IWatchListStorage = {
     );
 
     await watchListStorage.set(updatedList);
+  },
+  maxIndex: async () => {
+    const list = await watchListStorage.get();
+
+    if (!list || list.length === 0) {
+      return -1; // Return -1 if the list is empty or null
+    }
+
+    const maxIndex = list.reduce((max, watchList) => (watchList.index > max.index ? watchList : max), list[0]);
+
+    return maxIndex.index;
+  },
+  ensureSetting: async () => {
+    let list = await watchListStorage.get();
+    list = list.map((item, i) => ({
+      ...ensureSetting(item),
+      index: i,
+    }));
+    chrome.storage.local.remove('WATCH_LIST_EXT', async () => {
+      console.log('Key WATCH_LIST_EXT removed from local storage.123');
+      console.log(list);
+    });
+
+    chrome.storage.local.set({ WATCH_LIST_EXT: list });
   },
 };
 
@@ -206,4 +255,120 @@ export const PRIORITYCHAINLIST: readonly [string, string][] = [
   ['WAN', 'WAN Chain'],
   ['ZETA', 'ZETA Chain'],
   ['TT', 'ThunderCore (TT)'],
+];
+
+[
+  {
+    address: '',
+    chainId: '',
+    changeRate1h: '0',
+    changeRate24h: '-1.02',
+    changeRate5m: '0',
+    changeRate6h: '0',
+    dexId: '',
+    guidID: '120c043c-f719-4f15-872f-5326184e9afe',
+    imageUrl: 'content/BTC.svg',
+    isPriority: true,
+    name: 'Bitcoin',
+    price: '82524.8',
+    symbol: 'BTC',
+    url: '',
+  },
+  {
+    address: '',
+    chainId: '',
+    changeRate1h: '0',
+    changeRate24h: '-1.03',
+    changeRate5m: '0',
+    changeRate6h: '0',
+    dexId: '',
+    guidID: '4ea6bd60-7bf7-4814-ad28-65e7fff2cdf2',
+    imageUrl: 'content/ETH.svg',
+    isPriority: true,
+    name: 'Ethereum',
+    price: '1890.98',
+    symbol: 'ETH',
+    url: '',
+  },
+  {
+    address: '',
+    chainId: '',
+    changeRate1h: '0',
+    changeRate24h: '-4.4799999999999995',
+    changeRate5m: '0',
+    changeRate6h: '0',
+    dexId: '',
+    guidID: '3806935d-9991-42bd-a851-e920e8265a6a',
+    imageUrl: 'content/SOL.svg',
+    isPriority: true,
+    name: 'Solana',
+    price: '123.237',
+    symbol: 'SOL',
+    url: '',
+  },
+  {
+    address: '',
+    chainId: '',
+    changeRate1h: '0',
+    changeRate24h: '0.16',
+    changeRate5m: '0',
+    changeRate6h: '0',
+    dexId: '',
+    guidID: '225a573b-7787-48da-a1b9-086327bff69e',
+    imageUrl: 'content/BNB.svg',
+    isPriority: true,
+    name: 'Binance Smart Chain',
+    price: '631.158',
+    symbol: 'BNB',
+    url: '',
+  },
+  {
+    address: '0x0d01dc56dcaaca66ad901c959b4011ec',
+    chainId: 'hyperliquid',
+    changeRate1h: -1.33,
+    changeRate24h: -3.91,
+    changeRate5m: -0.37,
+    changeRate6h: 1.27,
+    dexId: 'hyperliquid',
+    guidID: '8e3a2850-4507-433f-89c7-632c89f67dfe',
+    imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/hyperliquid/0x0d01dc56dcaaca66ad901c959b4011ec.png?key=4ba426',
+    isPriority: false,
+    name: 'HYPE',
+    price: '13.25',
+    symbol: 'HYPE',
+    url: 'https://dexscreener.com/hyperliquid/0x13ba5fea7078ab3798fbce53b4d0721c',
+  },
+  {
+    address: '0xFeAc2Eae96899709a43E252B6B92971D32F9C0F9',
+    chainId: 'ethereum',
+    changeRate1h: -0.34,
+    changeRate24h: -1.53,
+    changeRate5m: -0.06,
+    changeRate6h: -3.49,
+    dexId: 'uniswap',
+    guidID: 'ccc753d4-2e11-4206-9ef8-6131b17700cb',
+    imageUrl:
+      'https://dd.dexscreener.com/ds-data/tokens/ethereum/0xfeac2eae96899709a43e252b6b92971d32f9c0f9.png?key=7c0749',
+    isPriority: false,
+    name: 'ANyONe Protocol',
+    price: '0.3184',
+    symbol: 'ANYONE',
+    url: 'https://dexscreener.com/ethereum/0xc593fe9193b745447e86b45ea0bf62565ee030cc',
+  },
+  {
+    address: '0x86Bb94DdD16Efc8bc58e6b056e8df71D9e666429',
+    chainId: 'bsc',
+    changeRate1h: -2.09,
+    changeRate24h: 3.97,
+    changeRate5m: -0.06,
+    changeRate6h: 10.16,
+    dexId: 'pancakeswap',
+    guidID: '784978a7-d136-4744-a1e5-7587f5aa2fa4',
+    imageUrl: 'https://dd.dexscreener.com/ds-data/tokens/bsc/0x86bb94ddd16efc8bc58e6b056e8df71d9e666429.png?key=a3d266',
+    isPriority: false,
+    name: 'Test',
+    price: '0.07514',
+    symbol: 'TST',
+    url: 'https://dexscreener.com/bsc/0xb36c81707e5ca2bd6f68cd6b71b3178d29c48a4b',
+  },
 ];

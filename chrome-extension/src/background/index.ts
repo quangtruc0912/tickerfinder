@@ -131,6 +131,7 @@ const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
     url: item.url,
     imageUrl: item.info?.imageUrl,
     isPriority: false,
+    index: item.index,
   }));
 
   watchListDataList.forEach(item => {
@@ -428,6 +429,7 @@ chrome.runtime.onInstalled.addListener(async details => {
   console.log('Extension installed for the first time!');
   if (details.reason === 'install') {
     for (const coin of INIT) {
+      let index = 0;
       const findResult = findInPriorityChainList(coin);
       let uuid = generateUUID();
       if (findResult) {
@@ -446,7 +448,9 @@ chrome.runtime.onInstalled.addListener(async details => {
           changeRate5m: '0',
           changeRate1h: '0',
           changeRate6h: '0',
+          index: index,
         });
+        index++;
       }
     }
     chrome.runtime.openOptionsPage();
@@ -467,16 +471,7 @@ chrome.runtime.onInstalled.addListener(async details => {
 });
 
 const DataCorrection = async (): Promise<void> => {
-  let list = await useWatchListStorage.getWatchlist();
-  list.forEach(async element => {
-    if (element.isPriority === true && element.imageUrl?.startsWith('chrome-extension://')) {
-      const contentIndex = element.imageUrl.indexOf('content/');
-      if (contentIndex !== -1) {
-        element.imageUrl = element.imageUrl.substring(contentIndex);
-        await useWatchListStorage.updateWatchlist(element);
-      }
-    }
-  });
+  await useWatchListStorage.ensureSetting();
 };
 chrome.commands.onCommand.addListener(async command => {
   if (command === 'toggle_side_panel') {

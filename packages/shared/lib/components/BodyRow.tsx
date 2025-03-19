@@ -220,6 +220,7 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
         // }
       });
     } else {
+      const index = await useWatchListStorage.maxIndex();
       const watchlistItem = {
         guidID: uuid,
         address: row.baseToken.address,
@@ -235,6 +236,7 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
         changeRate5m: row?.priceChange?.m5?.toString() || '0',
         changeRate1h: row?.priceChange?.h1?.toString() || '0',
         changeRate6h: row?.priceChange?.h6?.toString() || '0',
+        index: index + 1,
       };
 
       chrome.runtime.sendMessage({ type: 'ADD_TO_WATCHLIST', item: watchlistItem }, response => {
@@ -358,7 +360,13 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
             </Box>
             <Box sx={{ ...commonStyles.flexCenter, gap: 1 }}>
               <Tooltip title="Contract Address verified on DexScreener. Redirect?" arrow>
-                <IconButton sx={{ backgroundColor: 'white', p: 0.25 }} size="small">
+                <IconButton
+                  sx={{ backgroundColor: 'white', p: 0.25 }}
+                  size="small"
+                  onClick={e => {
+                    e.stopPropagation();
+                    window.open(`${row.url}`, '_blank');
+                  }}>
                   <Avatar src={chrome.runtime.getURL(DexscreenerIcon)} sx={commonStyles.iconButton} />
                 </IconButton>
               </Tooltip>
@@ -480,7 +488,7 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
         </TableCell>
         <SwitchTransition>
           <Fade key={price}>
-            <TableCell align="right">{price}</TableCell>
+            <TableCell align="right">${price}</TableCell>
           </Fade>
         </SwitchTransition>
         <TableCell sx={{ ...commonStyles.ellipsisCell, width: '230px' }}>

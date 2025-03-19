@@ -24,14 +24,51 @@ export default function TickerPopup() {
       const rect = target.getBoundingClientRect();
       const scrollTop = window.scrollY;
       const scrollLeft = window.scrollX;
-      let top = rect.top + scrollTop + rect.height;
-      let left = rect.left + scrollLeft - 150;
-      const popupWidth = 600;
+      const popupWidth = 600; // Adjust based on content
+      const popupHeight = 400; // Adjust based on content
       const viewportWidth = window.innerWidth;
-      const wouldOverflowRight = left + popupWidth > viewportWidth;
+      const viewportHeight = window.innerHeight;
 
-      if (wouldOverflowRight) {
-        left = rect.left + scrollLeft - popupWidth + rect.width;
+      // Determine the $ tag's position
+      const isRightHalf = rect.left + rect.width / 2 > viewportWidth / 2;
+      const isTopThird = rect.top < viewportHeight / 3;
+      const isBottomThird = rect.top > (viewportHeight * 2) / 3;
+
+      let top = 0;
+      let left = 0;
+
+      if (isRightHalf) {
+        if (isTopThird) {
+          // Top-right: Display below the tag
+          top = rect.bottom + scrollTop; // No gap below
+          left = rect.left + scrollLeft - popupWidth; // Flush to the left
+        } else if (isBottomThird) {
+          // Bottom-right: Display above the tag
+          top = rect.top + scrollTop - popupHeight; // Flush above
+          left = rect.left + scrollLeft; // Align with the tag’s left edge
+        } else {
+          // Middle-right: Display to the left of the tag
+          top = rect.top + scrollTop - popupHeight / 2 + rect.height / 2; // Vertically centered
+          left = rect.left + scrollLeft - popupWidth; // Flush to the left
+        }
+      } else {
+        // Default (left or center): Display below the tag
+        top = rect.top + scrollTop + rect.height; // Flush below
+        left = rect.left + scrollLeft; // Align with the tag’s left edge
+      }
+
+      // Adjust for viewport boundaries
+      if (left + popupWidth > viewportWidth) {
+        left = viewportWidth - popupWidth; // Flush to right edge if needed
+      }
+      if (left < 0) {
+        left = 0; // Flush to left edge
+      }
+      if (top + popupHeight > viewportHeight + scrollTop) {
+        top = viewportHeight + scrollTop - popupHeight; // Flush to bottom edge
+      }
+      if (top < scrollTop) {
+        top = scrollTop; // Flush to top edge
       }
 
       setPopupPosition({ top, left });
@@ -47,12 +84,8 @@ export default function TickerPopup() {
     }
   };
 
-  const handlePopupMouseOver = () => {
-    setShowPopup(true);
-  };
-  const handlePopupMouseOut = () => {
-    setShowPopup(false);
-  };
+  const handlePopupMouseOver = () => setShowPopup(true);
+  const handlePopupMouseOut = () => setShowPopup(false);
 
   useEffect(() => {
     const handleMouseOverEvent = (e: MouseEvent) => handleMouseOver(e);
@@ -92,10 +125,12 @@ export default function TickerPopup() {
     left: popupPosition.left,
     backgroundColor: theme.palette.background.default,
     color: theme.palette.text.primary,
-    padding: '10px',
+    padding: '5px', // Reduced padding to minimize internal gap
     borderRadius: '5px',
     zIndex: 1000,
-    scale: 0.9,
+    maxHeight: '80vh',
+    overflowY: 'auto',
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
   };
 
   return (
@@ -107,15 +142,15 @@ export default function TickerPopup() {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'stretch',
-              minWidth: '1000px',
-              maxWidth: '1300px',
-              width: 'fit-content',
+              minwidth: '1000px',
+              maxWidth: '100%',
             }}>
             <Box
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px', // Space between input and button
+                gap: '10px',
+                marginBottom: '5px', // Reduced to minimize vertical gap
               }}>
               <TextField
                 fullWidth
@@ -124,7 +159,7 @@ export default function TickerPopup() {
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 autoFocus
-                sx={{ flexGrow: 1 }} // Makes the input take available space
+                sx={{ flexGrow: 1 }}
                 slotProps={{
                   input: {
                     endAdornment: isLoading ? (
@@ -144,8 +179,8 @@ export default function TickerPopup() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  textTransform: 'none', // Keep text formatting
-                  padding: '6px 10px', // Adjust padding if needed
+                  textTransform: 'none',
+                  padding: '6px 10px',
                 }}>
                 <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
                   Watch List

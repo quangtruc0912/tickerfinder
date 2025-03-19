@@ -56,7 +56,9 @@ export function useKucoin(ticker: string) {
     try {
       ticker = ticker.toUpperCase();
       const findResult = findInPriorityChainList(ticker);
-      const data = memoizedContractAddresses.find(item => item.symbol.toLowerCase() === ticker.toLowerCase());
+      const data = Array.isArray(memoizedContractAddresses)
+        ? memoizedContractAddresses.find(item => item.symbol.toLowerCase() === ticker.toLowerCase())
+        : undefined;
       if (findResult || data != null) {
         chrome.runtime.sendMessage({ type: 'FETCH_KUCOIN', ticker }, response => {
           if (response.data) {

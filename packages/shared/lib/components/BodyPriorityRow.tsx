@@ -131,6 +131,7 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
         // }
       });
     } else {
+      const index = await useWatchListStorage.maxIndex();
       const watchlistItem = {
         guidID: uuid,
         address: '',
@@ -146,6 +147,7 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
         changeRate5m: '0',
         changeRate1h: '0',
         changeRate6h: '0',
+        index: index + 1,
       };
       chrome.runtime.sendMessage({ type: 'ADD_TO_WATCHLIST', item: watchlistItem }, response => {
         // if (chrome.runtime.lastError) {
