@@ -26,15 +26,15 @@ import {
   Tabs,
   Tab,
   Pagination,
-  Tooltip, // Added Tooltip import
+  Tooltip,
 } from '@mui/material';
-import { Delete as DeleteIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, ArrowUpward, ArrowDownward } from '@mui/icons-material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import ChangeRateCard from './ChangeRateCard';
 import CoinBalanceList from './CoinBalanceList';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import XIcon from '@mui/icons-material/X'; // Twitter/X icon
+import XIcon from '@mui/icons-material/X';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -122,6 +122,34 @@ const SidePanel = () => {
     } else {
       chrome.runtime.sendMessage({ type: 'REMOVE_PRIORITY_FROM_WATCHLIST', name: name });
     }
+  };
+
+  const moveItemUp = (currentIndex: number) => {
+    if (currentIndex === 0) return;
+    const newWatchlist = [...watchlist];
+    const [movedItem] = newWatchlist.splice(currentIndex, 1);
+    newWatchlist.splice(currentIndex - 1, 0, movedItem);
+    newWatchlist.forEach((item, i) => {
+      item.index = i;
+    });
+    setWatchlist(newWatchlist);
+    chrome.runtime.sendMessage({ type: 'UPDATE_INDEX_WATCHLIST', items: newWatchlist }, response => {
+      // console.log("Updated index watchlist:", response);
+    });
+  };
+
+  const moveItemDown = (currentIndex: number) => {
+    if (currentIndex === watchlist.length - 1) return;
+    const newWatchlist = [...watchlist];
+    const [movedItem] = newWatchlist.splice(currentIndex, 1);
+    newWatchlist.splice(currentIndex + 1, 0, movedItem);
+    newWatchlist.forEach((item, i) => {
+      item.index = i;
+    });
+    setWatchlist(newWatchlist);
+    chrome.runtime.sendMessage({ type: 'UPDATE_INDEX_WATCHLIST', items: newWatchlist }, response => {
+      // console.log("Updated index watchlist:", response);
+    });
   };
 
   const toggleExpandItem = (id: string) => {
@@ -263,7 +291,7 @@ const SidePanel = () => {
             </Typography>
           </Box>
           <List>
-            {paginatedWatchlist.map(item => (
+            {paginatedWatchlist.map((item, index) => (
               <React.Fragment key={item.guidID}>
                 <ListItem onClick={() => toggleExpandItem(item.guidID)} sx={{ display: 'block', p: 0 }}>
                   <Box sx={{ ...commonStyles.flexBetween, width: '100%', position: 'relative' }}>
@@ -338,10 +366,9 @@ const SidePanel = () => {
                             width: '100%',
                             height: '100%',
                             display: 'flex',
-                            flexDirection: 'column',
                             justifyContent: 'center',
                             alignItems: 'center',
-                            gap: 1,
+                            gap: 2,
                             backgroundColor: 'rgba(0, 0, 0, 0.7)',
                             borderRadius: '8px',
                             border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -350,41 +377,48 @@ const SidePanel = () => {
                             opacity: 0.95,
                             zIndex: 1,
                           }}>
-                          <Button
-                            variant="contained"
-                            size="small"
-                            onClick={e => {
-                              e.stopPropagation();
-                              handleTradeRedirect(item);
-                            }}
-                            sx={{
-                              bgcolor: 'primary.main',
-                              color: 'white',
-                              fontSize: '0.75rem',
-                              fontWeight: 'bold',
-                              padding: '4px 12px',
-                              borderRadius: '12px',
-                              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
-                              '&:hover': {
-                                bgcolor: 'primary.dark',
-                                transform: 'scale(1.05)',
-                                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
-                              },
-                              transition: 'all 0.2s ease',
-                            }}>
-                            Trade
-                          </Button>
-                          <Tooltip title={`Check out what people are talking about $${item.symbol} on X/Twitter`}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <IconButton
+                              size="small"
+                              onClick={e => {
+                                e.stopPropagation();
+                                moveItemUp(index + (currentPage - 1) * itemsPerPage);
+                              }}
+                              disabled={index === 0 && currentPage === 1}
+                              sx={{
+                                bgcolor: 'grey.700',
+                                color: 'white',
+                                padding: '4px',
+                                '&:hover': { bgcolor: 'grey.600' },
+                              }}>
+                              <ArrowUpward fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={e => {
+                                e.stopPropagation();
+                                moveItemDown(index + (currentPage - 1) * itemsPerPage);
+                              }}
+                              disabled={index === paginatedWatchlist.length - 1 && currentPage === totalPages}
+                              sx={{
+                                bgcolor: 'grey.700',
+                                color: 'white',
+                                padding: '4px',
+                                '&:hover': { bgcolor: 'grey.600' },
+                              }}>
+                              <ArrowDownward fontSize="small" />
+                            </IconButton>
+                          </Box>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                             <Button
                               variant="contained"
                               size="small"
-                              startIcon={<XIcon />}
                               onClick={e => {
                                 e.stopPropagation();
-                                handleExplorerRedirect(item);
+                                handleTradeRedirect(item);
                               }}
                               sx={{
-                                bgcolor: 'secondary.main',
+                                bgcolor: 'primary.main',
                                 color: 'white',
                                 fontSize: '0.75rem',
                                 fontWeight: 'bold',
@@ -392,15 +426,42 @@ const SidePanel = () => {
                                 borderRadius: '12px',
                                 boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
                                 '&:hover': {
-                                  bgcolor: 'secondary.dark',
+                                  bgcolor: 'primary.dark',
                                   transform: 'scale(1.05)',
                                   boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
                                 },
                                 transition: 'all 0.2s ease',
                               }}>
-                              Explorer
+                              Trade
                             </Button>
-                          </Tooltip>
+                            <Tooltip title={`Check out what people are talking about $${item.symbol} on X/Twitter`}>
+                              <Button
+                                variant="contained"
+                                size="small"
+                                startIcon={<XIcon />}
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  handleExplorerRedirect(item);
+                                }}
+                                sx={{
+                                  bgcolor: 'secondary.main',
+                                  color: 'white',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 'bold',
+                                  padding: '4px 12px',
+                                  borderRadius: '12px',
+                                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
+                                  '&:hover': {
+                                    bgcolor: 'secondary.dark',
+                                    transform: 'scale(1.05)',
+                                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+                                  },
+                                  transition: 'all 0.2s ease',
+                                }}>
+                                Explorer
+                              </Button>
+                            </Tooltip>
+                          </Box>
                         </Box>
                       )}
                     </Box>

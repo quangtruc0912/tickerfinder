@@ -26,8 +26,9 @@ let watchlist: WatchlistItem[] = [];
 let tokensBalance: TokenBalanceData[] = [];
 
 let isFetching = false;
-let pendingUpdate = false;
+let isPendingUpdate = false;
 let pendingAdditions: WatchlistItem[] = [];
+let pendingUpdateIndexes: WatchlistItem[] = [];
 let pendingDeletions: string[] = [];
 let pendingPriorityDeletions: string[] = [];
 
@@ -77,6 +78,7 @@ const fetchPriorityCoin = async (symbol: string, watchlist: WatchlistItem) => {
     changeRate5m: '0',
     changeRate1h: '0',
     changeRate6h: '0',
+    index: watchlist.index,
   } as WatchlistItem;
 };
 function getUniqueChains(items: WatchlistItem[], property: keyof WatchlistItem): string[] {
@@ -131,7 +133,7 @@ const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
     url: item.url,
     imageUrl: item.info?.imageUrl,
     isPriority: false,
-    index: item.index,
+    index: item?.index,
   }));
 
   watchListDataList.forEach(item => {
@@ -140,6 +142,7 @@ const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
     if (matchingWatchlistItem) {
       item.imageUrl = matchingWatchlistItem.imageUrl;
       item.guidID = matchingWatchlistItem.guidID;
+      item.index = matchingWatchlistItem.index;
     }
   });
 
@@ -148,32 +151,58 @@ const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
 
 const fetchData = async () => {
   if (isFetching) {
-    pendingUpdate = true; // Mark that we need to re-run fetchData
+    isPendingUpdate = false; // Mark that we need to re-run fetchData
     return;
   }
 
   isFetching = true;
-  pendingUpdate = false; // Reset pending update flag
-
+  isPendingUpdate = false; // Reset pending update flag
   try {
     let storage = await useWatchListStorage.get();
 
-    // Apply pending deletions before fetching data
     if (pendingDeletions.length > 0) {
       storage = storage.filter(item => !pendingDeletions.includes(item.url));
-      pendingDeletions = []; // Clear deletions after applying
+      pendingDeletions = [];
     }
 
     if (pendingPriorityDeletions.length > 0) {
       storage = storage.filter(item => !(pendingPriorityDeletions.includes(item.name) && item.isPriority));
-      pendingPriorityDeletions = []; // Clear deletions after applying
+      pendingPriorityDeletions = [];
     }
 
-    // Apply pending additions before fetching data
     if (pendingAdditions.length > 0) {
+      const maxIndex = storage.length > 0 ? Math.max(...storage.map(item => item.index || 0)) : -1;
+      pendingAdditions.forEach((item, i) => {
+        item.index = maxIndex + 1 + i;
+      });
       storage = storage.concat(pendingAdditions);
-      pendingAdditions = []; // Clear additions after applying
+      pendingAdditions = [];
     }
+
+    if (pendingUpdateIndexes.length > 0) {
+      // Replace storage with the latest full list from pendingUpdates
+      const latestUpdate = pendingUpdateIndexes.slice(-storage.length); // Take the last full list
+      if (latestUpdate.length === storage.length) {
+        storage = latestUpdate.map(item => ({ ...item })); // Use the full list
+      } else {
+        // Handle partial updates if any
+        pendingUpdateIndexes.forEach(update => {
+          const currentIdx = storage.findIndex(item => item.guidID === update.guidID);
+          if (currentIdx !== -1 && update.index !== undefined) {
+            const newIndex = Math.max(0, Math.min(update.index, storage.length - 1));
+            storage[currentIdx].index = newIndex;
+            const [movedItem] = storage.splice(currentIdx, 1);
+            storage.splice(newIndex, 0, movedItem);
+            storage.forEach((item, i) => {
+              item.index = i;
+            });
+          }
+        });
+      }
+      pendingUpdateIndexes = [];
+    }
+
+    storage.sort((a, b) => (a.index || 0) - (b.index || 0));
 
     let updatedData: WatchlistItem[] = [];
     let prioritiesCoin = storage.filter(ele => ele.isPriority);
@@ -182,14 +211,16 @@ const fetchData = async () => {
     for (const coin of prioritiesCoin) {
       let priorityData = await fetchPriorityCoin(coin.symbol, coin);
       if (priorityData !== null) {
-        updatedData.push(priorityData);
+        updatedData.push({ ...coin, ...priorityData, price: String(priorityData.price) });
       }
     }
 
     let data = await fetchCoinsData(coins);
-    updatedData = updatedData.concat(data);
+    updatedData = updatedData.concat(data.map(item => ({ ...item, price: String(item.price) })));
 
-    useWatchListStorage.set(updatedData);
+    updatedData.sort((a, b) => (a.index || 0) - (b.index || 0));
+
+    await useWatchListStorage.set(updatedData);
     watchlist = updatedData;
     checkAlarms(updatedData);
     settingStorage.setLastFetchWatchList(Date.now());
@@ -197,12 +228,12 @@ const fetchData = async () => {
     console.error('Error fetching data:', error);
   } finally {
     isFetching = false;
-
-    // If an update was queued while fetching, run fetchData again
     if (
-      pendingUpdate ||
+      isPendingUpdate ||
+      pendingUpdateIndexes.length > 0 ||
       pendingAdditions.length > 0 ||
-      (pendingDeletions.length > 0 && pendingPriorityDeletions.length > 0)
+      pendingDeletions.length > 0 ||
+      pendingPriorityDeletions.length > 0
     ) {
       fetchData();
     }
@@ -253,11 +284,18 @@ const notifyUser = (triggered: WatchlistItem[]) => {
 
 chrome.runtime.onMessage.addListener(
   (
-    message: { type: string; ticker?: string; id?: string; name?: string; item?: WatchlistItem },
+    message: {
+      type: string;
+      ticker?: string;
+      id?: string;
+      name?: string;
+      item?: WatchlistItem;
+      items?: WatchlistItem[];
+    },
     _sender,
     senderResponse: (response: any) => void,
   ) => {
-    const { type, ticker, id, name, item } = message;
+    const { type, ticker, id, name, item, items } = message;
 
     switch (type) {
       case 'FETCH_KUCOIN':
@@ -306,12 +344,25 @@ chrome.runtime.onMessage.addListener(
           removePriorityFromWatchlist(name);
         }
         return true;
+      case 'UPDATE_INDEX_WATCHLIST':
+        if (items) {
+          updateIndexWatchList(items); // Pass the full array
+          senderResponse({ success: true });
+        }
+        return true;
 
       default:
         return true;
     }
   },
 );
+const updateIndexWatchList = async (items: WatchlistItem[]) => {
+  if (isFetching) {
+    pendingUpdateIndexes.push(...items.map(item => ({ ...item })));
+  } else {
+    await useWatchListStorage.set(items);
+  }
+};
 
 const addToWatchlist = async (item: WatchlistItem) => {
   if (isFetching) {

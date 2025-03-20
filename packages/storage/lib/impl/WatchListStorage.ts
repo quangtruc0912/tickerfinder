@@ -127,10 +127,7 @@ export const useWatchListStorage: IWatchListStorage = {
       ...ensureSetting(item),
       index: i,
     }));
-    chrome.storage.local.remove('WATCH_LIST_EXT', async () => {
-      console.log('Key WATCH_LIST_EXT removed from local storage.123');
-      console.log(list);
-    });
+    chrome.storage.local.remove('WATCH_LIST_EXT', async () => {});
 
     chrome.storage.local.set({ WATCH_LIST_EXT: list });
   },
