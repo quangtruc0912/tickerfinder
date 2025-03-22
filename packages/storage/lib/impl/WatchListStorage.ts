@@ -26,7 +26,7 @@ export type WatchlistItem = {
   imageUrl: string;
   index: number;
 };
-const WATCHLIST_KEY = 'WATCH_LIST_EXT';
+export const WATCHLIST_KEY = 'WATCH_LIST_EXT';
 const THRESHOLD_KEY = 'THRESHOLD';
 
 const defaultWatchlistItem: WatchlistItem = {

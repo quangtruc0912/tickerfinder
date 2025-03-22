@@ -8,7 +8,7 @@ import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid2';
 import { useTheme } from '@mui/material/styles';
 import { useMemo, useState, useEffect, memo } from 'react';
-import { KuCoinData, useWatchListStorage } from '@extension/storage';
+import { KuCoinData, useWatchListStorage, WatchlistItem } from '@extension/storage';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
 import { generateUUID } from '../utils/index';
@@ -36,11 +36,12 @@ function numberFormat(num: number, options?: any) {
 interface BodyRowProps {
   row: PriorityPair; // Typing the `row` prop as RowData
   memoizedKucoinData: KuCoinData[];
+  watchList: WatchlistItem[];
 }
 
-const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => {
+const BodyPriorityPairRow = memo(({ row, memoizedKucoinData, watchList }: BodyRowProps) => {
   const memoizedRow = useMemo(() => row, [row.ticker, row.sell, row.volValue, row.changeRate]); // ✅ Only updates if actual values change
-  const [isInWatchlist, setIsInWatchlist] = useState(false);
+
   const theme = useTheme();
   const USD = Number(row.sell);
   const price = numberFormat(USD);
@@ -89,14 +90,9 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
     borderRadius: theme.shape.borderRadius,
   }));
 
-  const checkWatchlist = async () => {
-    const watchlist = await useWatchListStorage.getWatchlist();
-    const isAdded = watchlist.some(listItem => listItem.symbol === row.ticker && listItem.isPriority === true);
-    setIsInWatchlist(isAdded);
-  };
-  useEffect(() => {
-    checkWatchlist();
-  }, [memoizedRow, memoizedKucoinData]);
+  const isInWatchlist = useMemo(() => {
+    return watchList.some(item => item.symbol === row.ticker && item.isPriority === true);
+  }, [watchList, row.ticker]);
 
   useEffect(() => {
     const checkLogo = async () => {
@@ -157,8 +153,6 @@ const BodyPriorityPairRow = memo(({ row, memoizedKucoinData }: BodyRowProps) => 
         // }
       });
     }
-    checkWatchlist();
-    setIsInWatchlist(prev => !prev);
   };
 
   return (

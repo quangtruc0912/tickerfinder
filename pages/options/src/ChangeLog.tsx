@@ -48,6 +48,12 @@ export const ChangeLog = () => {
       changes: ['🔥 You can now search your favorite coin on any website.', '✨ Bug fixing'],
       devComments: 'None',
     },
+    {
+      version: '0.2.2',
+      date: 'March 21, 2025',
+      changes: ['🔥 Explore your coin on Twitter.', '🔄 Add ability to change coin position'],
+      devComments: 'None',
+    },
   ];
 
   return (

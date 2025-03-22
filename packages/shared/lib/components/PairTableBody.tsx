@@ -4,13 +4,22 @@ import BodyPairRow from './BodyRow';
 import BodyPriorityRow from './BodyPriorityRow';
 import { Box, Skeleton, Table, TableBody, TableCell, TableRow, TableContainer } from '@mui/material';
 import { useDexScreener, useKucoin } from '../hooks';
-import { coinGeckoStorage, CoinGeckoContractAddress, KuCoinData, KuCoinStorage } from '@extension/storage';
+import {
+  coinGeckoStorage,
+  CoinGeckoContractAddress,
+  KuCoinData,
+  KuCoinStorage,
+  useWatchListStorage,
+  WatchlistItem,
+  WATCHLIST_KEY,
+} from '@extension/storage';
 
 interface PairTableBodyProps {
   temp: string;
 }
 
 const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
+  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [ticker, setTicker] = useState('');
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const { data: dexData, isLoading: isDexLoading } = useDexScreener(ticker);
@@ -149,6 +158,29 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
     </div>
   );
 
+  useEffect(() => {
+    const fetchWatchlist = async () => {
+      const list = await useWatchListStorage.getWatchlist();
+      setWatchlist(list);
+    };
+    fetchWatchlist();
+  }, []);
+  useEffect(() => {
+    const handleStorageChange = (changes, area) => {
+      if (area === 'local' && changes[WATCHLIST_KEY]) {
+        const fetchWatchlist = async () => {
+          const list = await useWatchListStorage.getWatchlist();
+          setWatchlist(list);
+        };
+        fetchWatchlist();
+      }
+    };
+    chrome.storage.onChanged.addListener(handleStorageChange);
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange);
+    };
+  }, []);
+
   return (
     <Box sx={{ display: 'flex' }}>
       <Box sx={{ width: '150px', padding: '10px' }}>
@@ -164,7 +196,7 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
             {isKucoinLoading ? (
               <BodySkeleton rows={1} heads={8} />
             ) : kucoinDataMemo ? (
-              <BodyPriorityRow row={kucoinDataMemo} memoizedKucoinData={memoizedKuCoinData} />
+              <BodyPriorityRow row={kucoinDataMemo} memoizedKucoinData={memoizedKuCoinData} watchList={watchlist} />
             ) : null}
             {isDexLoading ? (
               <BodySkeleton rows={3} heads={8} />
@@ -175,6 +207,7 @@ const PairTableBody = memo(({ temp }: PairTableBodyProps) => {
                   row={row}
                   memoizedContractAddresses={memoizedContractAddresses}
                   expandedItem={expandedItem}
+                  watchList={watchlist}
                   toggleExpandItem={toggleExpandItem}
                 />
               ))

@@ -7,7 +7,7 @@ import { styled } from '@mui/material/styles';
 import Paper from '@mui/material/Paper';
 import Grid from '@mui/material/Grid2';
 import { useTheme } from '@mui/material/styles';
-import { useWatchListStorage, CoinGeckoContractAddress } from '@extension/storage';
+import { useWatchListStorage, CoinGeckoContractAddress, WatchlistItem } from '@extension/storage';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -125,11 +125,17 @@ interface BodyRowProps {
   row: Pair;
   memoizedContractAddresses: CoinGeckoContractAddress[];
   expandedItem: string | null; // Add this prop
+  watchList: WatchlistItem[];
   toggleExpandItem: (id: string) => void; // Add this prop
 }
 
-export default function BodyPairRow({ row, memoizedContractAddresses, expandedItem, toggleExpandItem }: BodyRowProps) {
-  const [isInWatchlist, setIsInWatchlist] = useState(false);
+export default function BodyPairRow({
+  row,
+  memoizedContractAddresses,
+  expandedItem,
+  watchList,
+  toggleExpandItem,
+}: BodyRowProps) {
   const [isSymbolValid, setIsSymbolValid] = useState<boolean | null>(null); // null = loading, true = valid, false = invalid
   const [isLoading, setIsLoading] = useState(true);
   const [chartError, setChartError] = useState(false); // Track if symbol is invalid
@@ -199,15 +205,9 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
     );
   };
 
-  const checkWatchlist = async () => {
-    const watchlist = await useWatchListStorage.getWatchlist();
-    const isAdded = watchlist.some(listItem => listItem.url === row.url);
-    setIsInWatchlist(isAdded);
-  };
-
-  useEffect(() => {
-    checkWatchlist();
-  }, [row]);
+  const isInWatchlist = useMemo(() => {
+    return watchList.some(item => item.url === row.url);
+  }, [watchList, row.url]);
 
   const handleToggle = async () => {
     if (isInWatchlist) {
@@ -248,8 +248,6 @@ export default function BodyPairRow({ row, memoizedContractAddresses, expandedIt
         // }
       });
     }
-    checkWatchlist();
-    setIsInWatchlist(prev => !prev);
   };
 
   function calculateAge(pairCreatedAt: string): string {
