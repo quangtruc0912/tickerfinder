@@ -3,7 +3,7 @@
 - Enhance your crypto experience on Everywhere with real-time price updates, instant alerts, and seamless market tracking—all in one place.
 
 ## Google Chrome Extension
-- [Redirect]((https://chromewebstore.google.com/detail/crxpto-tracker/cpjbddocpofidoomabiiofkiicfffhnp))
+- [Redirect](https://chromewebstore.google.com/detail/crxpto-tracker/cpjbddocpofidoomabiiofkiicfffhnp)
 
 ## Project based on boilerplate
 - [chrome-extension-boilerplate-react-vite](https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite)
