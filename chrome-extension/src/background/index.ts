@@ -22,6 +22,7 @@ const INTERVAL = 5000;
 
 const BLOCKSCOUTINTERVAL = 10000; // 10sec
 const COINGECKOINTERVAL = 3600000; // 1 HOUR
+const SYNCINTERVAL = 300000; // 1 HOUR
 
 let watchlist: WatchlistItem[] = [];
 let tokensBalance: TokenBalanceData[] = [];
@@ -32,6 +33,8 @@ let pendingAdditions: WatchlistItem[] = [];
 let pendingUpdateIndexes: WatchlistItem[] = [];
 let pendingDeletions: string[] = [];
 let pendingPriorityDeletions: string[] = [];
+
+let pendingSyncData: WatchlistSyncData | null = null;
 
 const notificationUrls: Record<string, string> = {};
 
@@ -163,12 +166,10 @@ const fetchData = async () => {
 
     if (pendingDeletions.length > 0) {
       storage = storage.filter(item => !pendingDeletions.includes(item.url));
-      pendingDeletions = [];
     }
 
     if (pendingPriorityDeletions.length > 0) {
       storage = storage.filter(item => !(pendingPriorityDeletions.includes(item.name) && item.isPriority));
-      pendingPriorityDeletions = [];
     }
 
     if (pendingAdditions.length > 0) {
@@ -177,7 +178,6 @@ const fetchData = async () => {
         item.index = maxIndex + 1 + i;
       });
       storage = storage.concat(pendingAdditions);
-      pendingAdditions = [];
     }
 
     if (pendingUpdateIndexes.length > 0) {
@@ -200,6 +200,18 @@ const fetchData = async () => {
           }
         });
       }
+    }
+
+    if (
+      pendingAdditions.length > 0 ||
+      pendingDeletions.length > 0 ||
+      pendingPriorityDeletions.length > 0 ||
+      pendingUpdateIndexes.length > 0
+    ) {
+      throttleSaveWatchlist({ cryptoWatchlist: storage, lastUpdated: Date.now() });
+      pendingDeletions = [];
+      pendingPriorityDeletions = [];
+      pendingAdditions = [];
       pendingUpdateIndexes = [];
     }
 
@@ -737,6 +749,32 @@ function loadWatchlist(callback: (result: WatchlistSyncData) => void): void {
   });
 }
 
+interface WatchlistDataWithTrigger extends WatchlistSyncData {
+  syncTrigger?: number; // Optional trigger field
+}
+
+function triggerManualSync(data: WatchlistSyncData): void {
+  const dataWithTrigger: WatchlistDataWithTrigger = {
+    ...data,
+    syncTrigger: Date.now(), // New timestamp to force a change
+  };
+  chrome.storage.sync.set(dataWithTrigger, () => {
+    console.log('Manual sync triggered with timestamp:', dataWithTrigger);
+  });
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && 'cryptoWatchlist' in changes) {
+    const newData = changes.cryptoWatchlist.newValue as WatchlistItem[];
+    const trigger = (changes.syncTrigger?.newValue as number) || 0;
+    console.log('Sync detected, trigger time:', new Date(trigger), 'data:', newData);
+  }
+});
+
+function throttleSaveWatchlist(data: WatchlistSyncData) {
+  pendingSyncData = data;
+}
+
 // saveWatchlist({ cryptoWatchlist: watchlist, lastUpdated: Date.now() });
 // loadWatchlist((result: WatchlistData) => {
 //   console.log("Current watchlist:", result.cryptoWatchlist);
@@ -749,3 +787,9 @@ fetchCoinGeckoData();
 setInterval(fetchData, INTERVAL);
 setInterval(fetchCoinGeckoData, COINGECKOINTERVAL);
 setInterval(fetchBlockScoutData, BLOCKSCOUTINTERVAL);
+setInterval(() => {
+  if (pendingSyncData) {
+    saveWatchlist(pendingSyncData);
+    pendingSyncData = null; // Clear after saving
+  }
+}, SYNCINTERVAL); // Save every 5 minutes
