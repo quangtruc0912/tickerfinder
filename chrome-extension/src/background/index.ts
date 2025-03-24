@@ -12,6 +12,7 @@ import {
   tokenBalanceStorage,
   TokenBalanceData,
   PRIORITYCHAINLIST,
+  WATCHLIST_KEY,
 } from '@extension/storage';
 
 let isSidePanelOpen = false; // Track whether the side panel is open
@@ -686,6 +687,61 @@ const filterTokensBalance = (data: TokenBalanceData[]) => {
 const fetchTokenBalance = async () => {
   tokensBalance = await tokenBalanceStorage.get();
 };
+
+interface WatchlistSyncData {
+  cryptoWatchlist: WatchlistItem[];
+  lastUpdated: number | null; // null if no data yet
+}
+
+// Save with sync fallback
+function saveWatchlist(data: WatchlistSyncData): void {
+  chrome.storage.sync.set(data, () => {
+    if (chrome.runtime.lastError) {
+      console.warn('Sync failed:', chrome.runtime.lastError.message);
+      chrome.storage.local.set(data, () => {
+        if (chrome.runtime.lastError) {
+          console.error('Local save failed:', chrome.runtime.lastError.message);
+        } else {
+          console.log('Saved to local as fallback:', data);
+        }
+      });
+    } else {
+      console.log('Saved to sync:', data);
+    }
+  });
+}
+
+function loadWatchlist(callback: (result: WatchlistSyncData) => void): void {
+  chrome.storage.sync.get(['cryptoWatchlist', 'lastUpdated'], (syncResult: Partial<WatchlistSyncData>) => {
+    if (chrome.runtime.lastError || !syncResult.cryptoWatchlist) {
+      console.warn('Sync unavailable or empty:', chrome.runtime.lastError?.message);
+      chrome.storage.local.get(['cryptoWatchlist', 'lastUpdated'], (localResult: Partial<WatchlistSyncData>) => {
+        if (localResult.cryptoWatchlist) {
+          console.log('Loaded from local:', localResult);
+          callback({
+            cryptoWatchlist: localResult.cryptoWatchlist,
+            lastUpdated: localResult.lastUpdated || null,
+          });
+        } else {
+          console.log('No watchlist found.');
+          callback({ cryptoWatchlist: [], lastUpdated: null });
+        }
+      });
+    } else {
+      console.log('Loaded from sync:', syncResult);
+      callback({
+        cryptoWatchlist: syncResult.cryptoWatchlist,
+        lastUpdated: syncResult.lastUpdated || null,
+      });
+    }
+  });
+}
+
+// saveWatchlist({ cryptoWatchlist: watchlist, lastUpdated: Date.now() });
+// loadWatchlist((result: WatchlistData) => {
+//   console.log("Current watchlist:", result.cryptoWatchlist);
+//   console.log("Last updated:", result.lastUpdated ? new Date(result.lastUpdated) : "Never");
+// });
 
 fetchTokenBalance();
 fetchCoinGeckoData();
