@@ -6,6 +6,7 @@ import { Container, Typography, Tabs, Tab, TextField, Button, Box, Divider } fro
 import type { ComponentPropsWithoutRef, SetStateAction } from 'react';
 import { ChangeLog } from './ChangeLog';
 import { Instructions } from './Intructions';
+import { SyncWatchLists } from './SyncWatchLists';
 const Options = () => {
   const theme = useStorage(exampleThemeStorage);
   const setting = useStorage(settingStorage);
@@ -198,6 +199,7 @@ const Options = () => {
           }}>
           <Tab label="Instructions" />
           <Tab label="Change Logs" />
+          <Tab label="Sync Settings" /> {/* New Tab for Syncing */}
         </Tabs>
 
         {/* Tabs Content */}
@@ -212,6 +214,7 @@ const Options = () => {
           }}>
           {tabIndex === 0 && <Instructions />}
           {tabIndex === 1 && <ChangeLog />}
+          {tabIndex === 2 && <SyncWatchLists />}
         </Box>
       </Box>
     </Container>

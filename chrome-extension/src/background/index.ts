@@ -363,7 +363,16 @@ chrome.runtime.onMessage.addListener(
           senderResponse({ success: true });
         }
         return true;
+      case 'TRIGGER_LOCALWATCHLIST_SYNC':
+        triggerManualSync({ cryptoWatchlist: watchlist, lastUpdated: Date.now() });
+        return true;
 
+      case 'TRIGGER_SYNC_TO_LOCAL':
+        loadWatchlist((result: WatchlistSyncData) => {
+          console.log('Current watchlist:', result.cryptoWatchlist);
+          console.log('Last updated:', result.lastUpdated ? new Date(result.lastUpdated) : 'Never');
+        });
+        return true;
       default:
         return true;
     }
