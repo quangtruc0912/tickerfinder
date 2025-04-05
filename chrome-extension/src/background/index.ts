@@ -368,10 +368,7 @@ chrome.runtime.onMessage.addListener(
         return true;
 
       case 'TRIGGER_SYNC_TO_LOCAL':
-        loadWatchlist((result: WatchlistSyncData) => {
-          console.log('Current watchlist:', result.cryptoWatchlist);
-          console.log('Last updated:', result.lastUpdated ? new Date(result.lastUpdated) : 'Never');
-        });
+        overrideLocalWithSync();
         return true;
       default:
         return true;
@@ -755,6 +752,29 @@ function loadWatchlist(callback: (result: WatchlistSyncData) => void): void {
         lastUpdated: syncResult.lastUpdated || null,
       });
     }
+  });
+}
+
+function overrideLocalWithSync(): void {
+  chrome.storage.sync.get(['cryptoWatchlist', 'lastUpdated'], (syncResult: Partial<WatchlistSyncData>) => {
+    if (chrome.runtime.lastError || !syncResult.cryptoWatchlist) {
+      console.warn('Sync data unavailable or empty:', chrome.runtime.lastError?.message);
+      return;
+    }
+    console.log('Overriding local with sync data:', syncResult);
+    console.log(' localdata:', watchlist);
+    chrome.storage.local.set(
+      {
+        WATCH_LIST_EXT: syncResult.cryptoWatchlist,
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          console.error('Failed to write to local storage:', chrome.runtime.lastError.message);
+        } else {
+          console.log('Local storage successfully overridden with sync data:', syncResult);
+        }
+      },
+    );
   });
 }
 
