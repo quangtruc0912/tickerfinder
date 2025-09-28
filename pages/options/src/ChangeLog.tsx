@@ -54,6 +54,12 @@ export const ChangeLog = () => {
       changes: ['🔥 Explore your coin on Twitter.', '🔄 Add ability to change coin position'],
       devComments: 'None',
     },
+    {
+      version: '0.2.3',
+      date: 'September 28, 2025',
+      changes: ['🔥 Update popular coin.', '🔄 Update code package'],
+      devComments: 'None',
+    },
   ];
 
   return (
