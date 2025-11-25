@@ -14,6 +14,7 @@ import {
   PRIORITYCHAINLIST,
   WATCHLIST_KEY,
 } from '@extension/storage';
+import { TwitterUserResponse, TwitterUserData } from '@extension/shared';
 
 let isSidePanelOpen = false; // Track whether the side panel is open
 const INIT = ['BTC', 'SOL', 'ETH'];
@@ -304,15 +305,20 @@ chrome.runtime.onMessage.addListener(
       name?: string;
       item?: WatchlistItem;
       items?: WatchlistItem[];
+      username?: string;
     },
     _sender,
     senderResponse: (response: any) => void,
   ) => {
-    const { type, ticker, id, name, item, items } = message;
+    const { type, ticker, id, name, item, items, username } = message;
 
     switch (type) {
       case 'FETCH_KUCOIN':
         fetchKucoinData(ticker!, senderResponse);
+        return true;
+
+      case 'FETCH_TWITTER_USER':
+        fetchTwitterUser(username!, senderResponse);
         return true;
 
       case 'GET_WATCHLIST':
@@ -466,6 +472,56 @@ async function fetchCoingeckoImage(id: string, senderResponse: (response: any) =
     senderResponse({ error: 'Failed to fetch Coingecko image' });
   }
   return true;
+}
+
+// Fetch Twitter User Data
+async function fetchTwitterUser(username: string, senderResponse: (response: TwitterUserResponse) => void) {
+  try {
+    // Note: For production, you'll need a proper X API Bearer Token
+    // This is a simplified example using a hypothetical endpoint
+    // In reality, you'll need to set up proper API credentials and handle rate limiting
+
+    // For now, we'll use a mock implementation that attempts to extract location
+    // from the user's profile page or use a geolocation service
+    const mockResponse = await mockTwitterUserLookup(username);
+    senderResponse(mockResponse);
+  } catch (error) {
+    console.error('Error fetching Twitter user:', error);
+    senderResponse({ error: 'Failed to fetch Twitter user data' });
+  }
+  return true;
+}
+
+// Mock Twitter user lookup - replace this with actual X API integration
+async function mockTwitterUserLookup(username: string): Promise<TwitterUserResponse> {
+  try {
+    // This is a simplified mock implementation
+    // In production, you would use the X API v2 endpoint:
+    // https://api.twitter.com/2/users/by/username/{username}?user.fields=location,public_metrics
+
+    // For demonstration, we'll return mock data with some common countries
+    const mockCountries = ['US', 'GB', 'CA', 'AU', 'DE', 'FR', 'JP', 'BR', 'IN', 'MX'];
+    const randomCountry = mockCountries[Math.floor(Math.random() * mockCountries.length)];
+
+    const mockData: TwitterUserData = {
+      id: `mock_${Math.random().toString(36).substr(2, 9)}`,
+      name: `User ${username}`,
+      username: username,
+      location: `Location for ${username}`,
+      country_code: randomCountry,
+      verified: false,
+      public_metrics: {
+        followers_count: Math.floor(Math.random() * 10000),
+        following_count: Math.floor(Math.random() * 1000),
+        tweet_count: Math.floor(Math.random() * 50000),
+        listed_count: Math.floor(Math.random() * 100),
+      },
+    };
+
+    return { data: mockData };
+  } catch (error) {
+    return { error: 'Failed to fetch user data' };
+  }
 }
 
 chrome.notifications.onClicked.addListener((notificationId: string) => {

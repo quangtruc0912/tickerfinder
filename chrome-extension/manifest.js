@@ -32,7 +32,12 @@ const allowedWebsites = [
   'https://www.facebook.com/*',
   'https://*/',
 ];
-const allowedAPIs = ['https://api.dexscreener.com/*', 'https://api.kucoin.com/*'];
+const allowedAPIs = [
+  'https://api.dexscreener.com/*',
+  'https://api.kucoin.com/*',
+  'https://api.twitter.com/*',
+  'https://api.x.com/*',
+];
 
 /**
  * After changing, please reload the extension at `chrome://extensions`
@@ -87,7 +92,7 @@ const manifest = withSidePanel({
   devtools_page: 'devtools/index.html',
   web_accessible_resources: [
     {
-      resources: ['*.js', '*.css', '*.svg', '*.json', 'icon-128.png', 'icon-34.png'],
+      resources: ['*.js', '*.css', '*.svg', '*.json', 'icon-128.png', 'icon-34.png', 'twitterPageScript.js'],
       matches: ['<all_urls>'],
     },
   ],
