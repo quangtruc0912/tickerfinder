@@ -84,7 +84,7 @@ export const ChangeLog = () => {
       </Typography>
       <Divider sx={{ marginBottom: '1rem' }} />
 
-      {logs.map((log, index) => (
+      {logs.reverse().map((log, index) => (
         <Box
           key={index}
           sx={{
