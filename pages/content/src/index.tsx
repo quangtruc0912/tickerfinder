@@ -36,6 +36,12 @@ let rateLimitResetTime = 0; // Unix timestamp when rate limit resets
 const processingUsernames = new Set<string>();
 let observer: MutationObserver | null = null;
 
+// Retry mechanism for failed loads
+const failedUsernames = new Map<string, number>(); // username -> timestamp of failure
+const RETRY_DELAY_MS = 5 * 60 * 1000; // 5 minutes
+const MAX_RETRY_ATTEMPTS = 3;
+const retryAttempts = new Map<string, number>(); // username -> attempt count
+
 const isTwitterSite = (): boolean => {
   return window.location.hostname === 'twitter.com' || window.location.hostname === 'x.com';
 };
@@ -599,11 +605,253 @@ function createLoadingShimmer(): HTMLElement {
   return shimmer;
 }
 
+// Function to add flag element to DOM with proper placement strategies
+async function addFlagElementToDOM(
+  usernameElement: HTMLElement,
+  screenName: string,
+  flagElement: HTMLElement,
+  location: string,
+): Promise<boolean> {
+  // Find User-Name container
+  const containerForFlag = usernameElement.querySelector(
+    '[data-testid="UserName"], [data-testid="User-Name"]',
+  ) as HTMLElement;
+
+  if (!containerForFlag) {
+    console.error(`Could not find UserName container for ${screenName}`);
+    return false;
+  }
+
+  // Check if flag already exists and remove any broken placements
+  const existingFlags = usernameElement.querySelectorAll('[data-twitter-flag]');
+  if (existingFlags.length > 0) {
+    console.log(`Removing ${existingFlags.length} existing flag(s) for ${screenName}`);
+    existingFlags.forEach(flag => {
+      // Also remove wrapper if it exists and is empty after flag removal
+      const wrapper = flag.parentNode as HTMLElement;
+      flag.remove();
+      if (wrapper && wrapper.children.length === 0 && wrapper.getAttribute('class')?.includes('css-175oi2r')) {
+        wrapper.remove();
+      }
+    });
+  }
+
+  // Detect if we're on a tweet detail page by checking URL
+  const isDetailPage = window.location.pathname.includes('/status/');
+
+  // Find the handle section - the div that contains the @username link
+  const handleSection = findHandleSection(containerForFlag, screenName);
+
+  let inserted = false;
+
+  // Special handling for tweet detail pages with more precise placement
+  if (isDetailPage) {
+    console.log(`Processing tweet detail page for ${screenName}`);
+
+    // Find the handle link that contains @username
+    const handleLinks = Array.from(containerForFlag.querySelectorAll('a[href^="/"]'));
+    const handleLink = handleLinks.find(link => {
+      const text = (link as HTMLElement).textContent?.trim();
+      return text === `@${screenName}`;
+    });
+
+    if (handleLink) {
+      try {
+        // Find the container that holds the @username link
+        const handleContainer = handleLink.parentNode as HTMLElement;
+        if (handleContainer) {
+          // Insert flag as a sibling before the handle container
+          const flagContainer = document.createElement('div');
+          flagContainer.className = 'css-175oi2r r-1wbh5a2 r-dnmrzs';
+          flagContainer.appendChild(flagElement);
+
+          handleContainer.parentNode?.insertBefore(flagContainer, handleContainer);
+          inserted = true;
+          console.log(`✓ Inserted flag in proper container before @handle on detail page for ${screenName}`);
+        }
+      } catch (e) {
+        console.log('Failed to insert flag container on detail page:', e);
+      }
+    }
+  }
+
+  // Strategy 1: Insert in proper container before handle section
+  if (!inserted && handleSection && handleSection.parentNode === containerForFlag) {
+    try {
+      // Create a proper container for the flag to maintain layout
+      const flagWrapper = document.createElement('div');
+      flagWrapper.className = 'css-175oi2r r-18u37iz r-1wbh5a2';
+      flagWrapper.appendChild(flagElement);
+
+      containerForFlag.insertBefore(flagWrapper, handleSection);
+      inserted = true;
+      console.log(`✓ Inserted flag wrapper before handle section for ${screenName}`);
+    } catch (e) {
+      console.log('Failed to insert before handle section:', e);
+    }
+  }
+
+  // Strategy 2: Find the handle section's parent and insert before it
+  if (!inserted && handleSection && handleSection.parentNode) {
+    try {
+      // Insert before the handle section's parent (if it's not User-Name)
+      const handleParent = handleSection.parentNode;
+      if (handleParent !== containerForFlag && handleParent.parentNode) {
+        handleParent.parentNode.insertBefore(flagElement, handleParent);
+        inserted = true;
+        console.log(`✓ Inserted flag before handle parent for ${screenName}`);
+      } else if (handleParent === containerForFlag) {
+        // Handle section is direct child, insert before it
+        containerForFlag.insertBefore(flagElement, handleSection);
+        inserted = true;
+        console.log(`✓ Inserted flag before handle section (direct child) for ${screenName}`);
+      }
+    } catch (e) {
+      console.log('Failed to insert before handle parent:', e);
+    }
+  }
+
+  // Strategy 3: Find display name container and insert after it, before handle section
+  if (!inserted && handleSection) {
+    try {
+      // Find the display name link (first link)
+      const displayNameLink = containerForFlag.querySelector('a[href^="/"]');
+      if (displayNameLink) {
+        // Find the div that contains the display name link
+        const displayNameContainer = displayNameLink.closest('div');
+        if (displayNameContainer && displayNameContainer.parentNode) {
+          // Check if handle section is a sibling
+          if (displayNameContainer.parentNode === handleSection.parentNode) {
+            displayNameContainer.parentNode.insertBefore(flagElement, handleSection);
+            inserted = true;
+            console.log(`✓ Inserted flag between display name and handle (siblings) for ${screenName}`);
+          } else {
+            // Try inserting after display name container
+            displayNameContainer.parentNode.insertBefore(flagElement, displayNameContainer.nextSibling);
+            inserted = true;
+            console.log(`✓ Inserted flag after display name container for ${screenName}`);
+          }
+        }
+      }
+    } catch (e) {
+      console.log('Failed to insert after display name:', e);
+    }
+  }
+
+  // Strategy 4: Insert in proper wrapper at the end (fallback)
+  if (!inserted) {
+    try {
+      // Create a proper container to maintain layout integrity
+      const flagWrapper = document.createElement('div');
+      flagWrapper.className = 'css-175oi2r r-18u37iz r-1wbh5a2';
+      flagWrapper.appendChild(flagElement);
+
+      containerForFlag.appendChild(flagWrapper);
+      inserted = true;
+      console.log(`✓ Inserted flag wrapper at end of UserName container for ${screenName}`);
+    } catch (e) {
+      console.error('Failed to append flag wrapper to User-Name container:', e);
+    }
+  }
+
+  if (inserted) {
+    console.log(`✓ Successfully added flag element for ${screenName} (${location})`);
+  } else {
+    console.error(`✗ Failed to insert flag for ${screenName} - tried all strategies`);
+  }
+
+  return inserted;
+}
+
+// Check if a failed user should be retried
+function shouldRetryFailedUser(screenName: string): boolean {
+  const failureTime = failedUsernames.get(screenName);
+  const attempts = retryAttempts.get(screenName) || 0;
+
+  if (!failureTime) {
+    return false;
+  }
+
+  // If max attempts reached, clean up tracking data and don't retry
+  if (attempts >= MAX_RETRY_ATTEMPTS) {
+    console.log(`Cleaning up retry tracking for ${screenName} - max attempts (${MAX_RETRY_ATTEMPTS}) reached`);
+    failedUsernames.delete(screenName);
+    retryAttempts.delete(screenName);
+    return false;
+  }
+
+  const now = Date.now();
+  const timeSinceFailure = now - failureTime;
+
+  return timeSinceFailure >= RETRY_DELAY_MS;
+}
+
+// Mark user as failed with timestamp
+function markUserAsFailed(screenName: string) {
+  const currentAttempts = retryAttempts.get(screenName) || 0;
+  const newAttempts = currentAttempts + 1;
+
+  if (newAttempts >= MAX_RETRY_ATTEMPTS) {
+    // Max attempts reached - clean up tracking data
+    console.log(`Max retry attempts (${MAX_RETRY_ATTEMPTS}) reached for ${screenName} - cleaning up tracking`);
+    failedUsernames.delete(screenName);
+    retryAttempts.delete(screenName);
+  } else {
+    // Still have retries left - update tracking
+    failedUsernames.set(screenName, Date.now());
+    retryAttempts.set(screenName, newAttempts);
+    console.log(`Marked ${screenName} as failed (attempt ${newAttempts}/${MAX_RETRY_ATTEMPTS})`);
+  }
+}
+
+// Clear retry tracking for successful load
+function clearRetryTracking(screenName: string) {
+  failedUsernames.delete(screenName);
+  retryAttempts.delete(screenName);
+}
+
 // Function to add flag to username element
 async function addFlagToUsername(usernameElement: HTMLElement, screenName: string) {
   // Check if flag already added
   if (usernameElement.dataset[TWITTER_FLAG_PROCESSED] === 'true') {
     return;
+  }
+
+  // Check if this user failed before and should be retried
+  const wasFailed = usernameElement.dataset[TWITTER_FLAG_PROCESSED] === 'failed';
+  if (wasFailed && !shouldRetryFailedUser(screenName)) {
+    // Still too soon to retry, skip
+    return;
+  }
+
+  // If we're retrying a failed user, reset the processing state
+  if (wasFailed && shouldRetryFailedUser(screenName)) {
+    console.log(`Retrying failed user: ${screenName}`);
+    usernameElement.dataset[TWITTER_FLAG_PROCESSED] = '';
+  }
+
+  // Check if we have cached location data and can add flag immediately
+  if (locationCache.has(screenName)) {
+    const cachedLocation = locationCache.get(screenName);
+    if (cachedLocation !== null && cachedLocation !== undefined) {
+      console.log(`Adding flag from cache for ${screenName}: ${cachedLocation}`);
+
+      // Get flag element from cached location
+      const flagElement = createFlagElement(cachedLocation);
+      if (flagElement) {
+        try {
+          await addFlagElementToDOM(usernameElement, screenName, flagElement, cachedLocation);
+          usernameElement.dataset[TWITTER_FLAG_PROCESSED] = 'true';
+          clearRetryTracking(screenName); // Clear retry tracking on success
+          console.log(`✓ Successfully added cached flag for ${screenName} (${cachedLocation})`);
+          return;
+        } catch (error) {
+          console.error(`Error adding cached flag for ${screenName}:`, error);
+          markUserAsFailed(screenName);
+          // Fall through to normal processing
+        }
+      }
+    }
   }
 
   // Check if this username is already being processed (prevent duplicate API calls)
@@ -672,6 +920,7 @@ async function addFlagToUsername(usernameElement: HTMLElement, screenName: strin
 
     if (!location) {
       console.log(`No location found for ${screenName}, marking as failed`);
+      markUserAsFailed(screenName);
       usernameElement.dataset[TWITTER_FLAG_PROCESSED] = 'failed';
       return;
     }
@@ -684,259 +933,18 @@ async function addFlagToUsername(usernameElement: HTMLElement, screenName: strin
       if (shimmerInserted && shimmerSpan.parentNode) {
         shimmerSpan.remove();
       }
+      markUserAsFailed(screenName);
       usernameElement.dataset[TWITTER_FLAG_PROCESSED] = 'failed';
       return;
     }
 
-    console.log(`Found flag element for ${screenName} (${location})`);
-
-    // Find the username link - try multiple strategies
-    // Priority: Find the @username link, not the display name link
-    let usernameLink = null;
-
-    // Find the User-Name container (reuse from above if available, otherwise find it)
-    const containerForLink =
-      userNameContainer || usernameElement.querySelector('[data-testid="UserName"], [data-testid="User-Name"]');
-
-    // Strategy 1: Find link with @username text content (most reliable - this is the actual handle)
-    if (containerForLink) {
-      const containerLinks = Array.from(containerForLink.querySelectorAll('a[href^="/"]'));
-      for (const link of containerLinks) {
-        const text = (link as HTMLElement).textContent?.trim();
-        const href = (link as HTMLAnchorElement).getAttribute('href');
-        const match = href?.match(/^\/([^\/\?]+)/);
-
-        // Prioritize links that have @username as text
-        if (match && match[1] === screenName) {
-          if (text === `@${screenName}` || text === screenName) {
-            usernameLink = link as HTMLElement;
-            break;
-          }
-        }
-      }
-    }
-
-    // Strategy 2: Find any link with @username text in UserName container
-    if (!usernameLink && containerForLink) {
-      const containerLinks = Array.from(containerForLink.querySelectorAll('a[href^="/"]'));
-      for (const link of containerLinks) {
-        const text = (link as HTMLElement).textContent?.trim();
-        if (text === `@${screenName}`) {
-          usernameLink = link as HTMLElement;
-          break;
-        }
-      }
-    }
-
-    // Strategy 3: Find link with exact matching href that has @username text anywhere in element
-    if (!usernameLink) {
-      const links = Array.from(usernameElement.querySelectorAll('a[href^="/"]'));
-      for (const link of links) {
-        const href = (link as HTMLAnchorElement).getAttribute('href');
-        const match = href?.match(/^\/([^\/\?]+)/);
-        if (match && match[1] === screenName) {
-          const text = (link as HTMLElement).textContent?.trim();
-          if (
-            href &&
-            (href === `/${screenName}` || href.startsWith(`/${screenName}?`)) &&
-            (text === `@${screenName}` || text === screenName)
-          ) {
-            usernameLink = link as HTMLElement;
-            break;
-          }
-        }
-      }
-    }
-
-    // Strategy 4: Fallback to any matching href (but prefer ones not in display name area)
-    if (!usernameLink) {
-      const links = Array.from(usernameElement.querySelectorAll('a[href^="/"]'));
-      for (const link of links) {
-        const href = (link as HTMLAnchorElement).getAttribute('href');
-        const match = href?.match(/^\/([^\/\?]+)/);
-        if (match && match[1] === screenName) {
-          // Skip if this looks like a display name link (has verification badge nearby)
-          const hasVerificationBadge = (link as HTMLElement)
-            .closest('[data-testid="User-Name"]')
-            ?.querySelector('[data-testid="icon-verified"]');
-          if (!hasVerificationBadge || (link as HTMLElement).textContent?.trim() === `@${screenName}`) {
-            usernameLink = link as HTMLElement;
-            break;
-          }
-        }
-      }
-    }
-
-    if (!usernameLink) {
-      console.error(`Could not find username link for ${screenName}`);
-      console.error(
-        'Available links in container:',
-        Array.from(usernameElement.querySelectorAll('a[href^="/"]')).map(l => ({
-          href: l.getAttribute('href'),
-          text: l.textContent?.trim(),
-        })),
-      );
-      // Remove shimmer on error
-      if (shimmerInserted && shimmerSpan.parentNode) {
-        shimmerSpan.remove();
-      }
-      usernameElement.dataset[TWITTER_FLAG_PROCESSED] = 'failed';
-      return;
-    }
-
-    console.log(
-      `Found username link for ${screenName}:`,
-      (usernameLink as HTMLAnchorElement).href,
-      usernameLink.textContent?.trim(),
-    );
-
-    // Check if flag already exists (check in the entire container, not just parent)
-    const existingFlag = usernameElement.querySelector('[data-twitter-flag]');
-    if (existingFlag) {
-      // Remove shimmer if flag already exists
-      if (shimmerInserted && shimmerSpan.parentNode) {
-        shimmerSpan.remove();
-      }
-      usernameElement.dataset[TWITTER_FLAG_PROCESSED] = 'true';
-      return;
-    }
-
-    // Add flag element - place it next to verification badge, before @ handle
-    // Use userNameContainer found above, or find it if not found
-    const containerForFlag =
-      userNameContainer ||
-      (usernameElement.querySelector('[data-testid="UserName"], [data-testid="User-Name"]') as HTMLElement);
-
-    if (!containerForFlag) {
-      console.error(`Could not find UserName container for ${screenName}`);
-      // Remove shimmer on error
-      if (shimmerInserted && shimmerSpan.parentNode) {
-        shimmerSpan.remove();
-      }
-      usernameElement.dataset[TWITTER_FLAG_PROCESSED] = 'failed';
-      return;
-    }
-
-    // Detect if we're on a tweet detail page by checking URL
-    const isDetailPage = window.location.pathname.includes('/status/');
-
-    // Find the verification badge (SVG with data-testid="icon-verified")
-    const verificationBadge = containerForFlag.querySelector('[data-testid="icon-verified"]');
-
-    // Find the handle section - the div that contains the @username link
-    // The structure is: User-Name > div (display name) > div (handle section with @username)
-    const handleSection = findHandleSection(containerForFlag, screenName);
-
-    let inserted = false;
-
-    // Special handling for tweet detail pages
-    if (isDetailPage) {
-      console.log(`Processing tweet detail page for ${screenName}`);
-
-      // On detail pages, try to find the display name and handle structure
-      const displayNameLink = containerForFlag.querySelector('a[href^="/"]');
-      const handleLink = Array.from(containerForFlag.querySelectorAll('a[href^="/"]')).find(link => {
-        return (link as HTMLElement).textContent?.trim() === `@${screenName}`;
-      });
-
-      if (handleLink && handleLink.parentNode) {
-        try {
-          // Insert flag right before the @handle link
-          handleLink.parentNode.insertBefore(flagElement, handleLink);
-          inserted = true;
-          console.log(`✓ Inserted flag before @handle on detail page for ${screenName}`);
-        } catch (e) {
-          console.log('Failed to insert before @handle on detail page:', e);
-        }
-      }
-
-      // If that didn't work, try inserting after display name but before handle
-      if (!inserted && displayNameLink && displayNameLink.parentNode) {
-        try {
-          // Insert after display name container
-          displayNameLink.parentNode.parentNode?.insertBefore(flagElement, displayNameLink.parentNode.nextSibling);
-          inserted = true;
-          console.log(`✓ Inserted flag after display name on detail page for ${screenName}`);
-        } catch (e) {
-          console.log('Failed to insert after display name on detail page:', e);
-        }
-      }
-    }
-
-    // Strategy 1: Insert right before the handle section div (which contains @username)
-    // The handle section is a direct child of User-Name container
-    if (!inserted && handleSection && handleSection.parentNode === containerForFlag) {
-      try {
-        containerForFlag.insertBefore(flagElement, handleSection);
-        inserted = true;
-        console.log(`✓ Inserted flag before handle section for ${screenName}`);
-      } catch (e) {
-        console.log('Failed to insert before handle section:', e);
-      }
-    }
-
-    // Strategy 2: Find the handle section's parent and insert before it
-    if (!inserted && handleSection && handleSection.parentNode) {
-      try {
-        // Insert before the handle section's parent (if it's not User-Name)
-        const handleParent = handleSection.parentNode;
-        if (handleParent !== containerForFlag && handleParent.parentNode) {
-          handleParent.parentNode.insertBefore(flagElement, handleParent);
-          inserted = true;
-          console.log(`✓ Inserted flag before handle parent for ${screenName}`);
-        } else if (handleParent === containerForFlag) {
-          // Handle section is direct child, insert before it
-          containerForFlag.insertBefore(flagElement, handleSection);
-          inserted = true;
-          console.log(`✓ Inserted flag before handle section (direct child) for ${screenName}`);
-        }
-      } catch (e) {
-        console.log('Failed to insert before handle parent:', e);
-      }
-    }
-
-    // Strategy 3: Find display name container and insert after it, before handle section
-    if (!inserted && handleSection) {
-      try {
-        // Find the display name link (first link)
-        const displayNameLink = containerForFlag.querySelector('a[href^="/"]');
-        if (displayNameLink) {
-          // Find the div that contains the display name link
-          const displayNameContainer = displayNameLink.closest('div');
-          if (displayNameContainer && displayNameContainer.parentNode) {
-            // Check if handle section is a sibling
-            if (displayNameContainer.parentNode === handleSection.parentNode) {
-              displayNameContainer.parentNode.insertBefore(flagElement, handleSection);
-              inserted = true;
-              console.log(`✓ Inserted flag between display name and handle (siblings) for ${screenName}`);
-            } else {
-              // Try inserting after display name container
-              displayNameContainer.parentNode.insertBefore(flagElement, displayNameContainer.nextSibling);
-              inserted = true;
-              console.log(`✓ Inserted flag after display name container for ${screenName}`);
-            }
-          }
-        }
-      } catch (e) {
-        console.log('Failed to insert after display name:', e);
-      }
-    }
-
-    // Strategy 4: Insert at the end of User-Name container (fallback)
-    if (!inserted) {
-      try {
-        containerForFlag.appendChild(flagElement);
-        inserted = true;
-        console.log(`✓ Inserted flag at end of UserName container for ${screenName}`);
-      } catch (e) {
-        console.error('Failed to append flag to User-Name container:', e);
-      }
-    }
+    // Add flag to DOM using the extracted function
+    const inserted = await addFlagElementToDOM(usernameElement, screenName, flagElement, location);
 
     if (inserted) {
       // Mark as processed
       usernameElement.dataset[TWITTER_FLAG_PROCESSED] = 'true';
-      console.log(`✓ Successfully added flag element for ${screenName} (${location})`);
+      clearRetryTracking(screenName); // Clear retry tracking on success
 
       // Also mark any other containers waiting for this username
       const waitingContainers = document.querySelectorAll(`[data-${TWITTER_FLAG_PROCESSED}="waiting"]`);
@@ -948,17 +956,12 @@ async function addFlagToUsername(usernameElement: HTMLElement, screenName: strin
         }
       });
     } else {
-      console.error(`✗ Failed to insert flag for ${screenName} - tried all strategies`);
-      console.error('Username link:', usernameLink);
-      console.error('Parent structure:', usernameLink.parentNode);
-      // Remove shimmer on failure
-      if (shimmerInserted && shimmerSpan.parentNode) {
-        shimmerSpan.remove();
-      }
+      markUserAsFailed(screenName);
       usernameElement.dataset[TWITTER_FLAG_PROCESSED] = 'failed';
     }
   } catch (error) {
     console.error(`Error processing flag for ${screenName}:`, error);
+    markUserAsFailed(screenName);
     // Remove shimmer on error
     if (shimmerInserted && shimmerSpan.parentNode) {
       shimmerSpan.remove();
@@ -997,6 +1000,7 @@ async function processUsernames() {
         // Process in parallel but limit concurrency
         addFlagToUsername(container as HTMLElement, screenName).catch(err => {
           console.error(`Error processing ${screenName}:`, err);
+          markUserAsFailed(screenName);
           (container as HTMLElement).dataset[TWITTER_FLAG_PROCESSED] = 'failed';
         });
       } else {
