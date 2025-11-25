@@ -14,7 +14,9 @@ export const COUNTRY_FLAGS: Record<string, { emoji: string; alt: string }> = {
   China: { emoji: '🇨🇳', alt: 'CN' },
   Colombia: { emoji: '🇨🇴', alt: 'CO' },
   'Czech Republic': { emoji: '🇨🇿', alt: 'CZ' },
+  Czechia: { emoji: '🇨🇿', alt: 'CZ' },
   Denmark: { emoji: '🇩🇰', alt: 'DK' },
+  'East Asia & Pacific': { emoji: '🌏', alt: 'AS' },
   Egypt: { emoji: '🇪🇬', alt: 'EG' },
   Europe: { emoji: '🇪🇺', alt: 'EU' },
   Finland: { emoji: '🇫🇮', alt: 'FI' },
@@ -44,11 +46,13 @@ export const COUNTRY_FLAGS: Record<string, { emoji: string; alt: string }> = {
   Portugal: { emoji: '🇵🇹', alt: 'PT' },
   Romania: { emoji: '🇷🇴', alt: 'RO' },
   Russia: { emoji: '🇷🇺', alt: 'RU' },
+  'Russian Federation': { emoji: '🇷🇺', alt: 'RU' },
   'Saudi Arabia': { emoji: '🇸🇦', alt: 'SA' },
   Singapore: { emoji: '🇸🇬', alt: 'SG' },
   'South Africa': { emoji: '🇿🇦', alt: 'ZA' },
   Korea: { emoji: '🇰🇷', alt: 'KR' },
   'South Korea': { emoji: '🇰🇷', alt: 'KR' },
+  'Republic of Korea': { emoji: '🇰🇷', alt: 'KR' },
   Spain: { emoji: '🇪🇸', alt: 'ES' },
   Sweden: { emoji: '🇸🇪', alt: 'SE' },
   Switzerland: { emoji: '🇨🇭', alt: 'CH' },
@@ -57,10 +61,66 @@ export const COUNTRY_FLAGS: Record<string, { emoji: string; alt: string }> = {
   Turkey: { emoji: '🇹🇷', alt: 'TR' },
   Ukraine: { emoji: '🇺🇦', alt: 'UA' },
   'United Arab Emirates': { emoji: '🇦🇪', alt: 'AE' },
+  UAE: { emoji: '🇦🇪', alt: 'AE' },
   'United Kingdom': { emoji: '🇬🇧', alt: 'GB' },
+  UK: { emoji: '🇬🇧', alt: 'GB' },
+  Britain: { emoji: '🇬🇧', alt: 'GB' },
+  'Great Britain': { emoji: '🇬🇧', alt: 'GB' },
   'United States': { emoji: '🇺🇸', alt: 'US' },
+  USA: { emoji: '🇺🇸', alt: 'US' },
+  US: { emoji: '🇺🇸', alt: 'US' },
+  America: { emoji: '🇺🇸', alt: 'US' },
   Venezuela: { emoji: '🇻🇪', alt: 'VE' },
   Vietnam: { emoji: '🇻🇳', alt: 'VN' },
+  'Viet Nam': { emoji: '🇻🇳', alt: 'VN' },
+  // Additional common countries
+  Belarus: { emoji: '🇧🇾', alt: 'BY' },
+  Bolivia: { emoji: '🇧🇴', alt: 'BO' },
+  Bulgaria: { emoji: '🇧🇬', alt: 'BG' },
+  Croatia: { emoji: '🇭🇷', alt: 'HR' },
+  Estonia: { emoji: '🇪🇪', alt: 'EE' },
+  Georgia: { emoji: '🇬🇪', alt: 'GE' },
+  Iceland: { emoji: '🇮🇸', alt: 'IS' },
+  Latvia: { emoji: '🇱🇻', alt: 'LV' },
+  Lithuania: { emoji: '🇱🇹', alt: 'LT' },
+  Luxembourg: { emoji: '🇱🇺', alt: 'LU' },
+  Malta: { emoji: '🇲🇹', alt: 'MT' },
+  Moldova: { emoji: '🇲🇩', alt: 'MD' },
+  Montenegro: { emoji: '🇲🇪', alt: 'ME' },
+  'North Macedonia': { emoji: '🇲🇰', alt: 'MK' },
+  Serbia: { emoji: '🇷🇸', alt: 'RS' },
+  Slovakia: { emoji: '🇸🇰', alt: 'SK' },
+  Slovenia: { emoji: '🇸🇮', alt: 'SI' },
+  'Bosnia and Herzegovina': { emoji: '🇧🇦', alt: 'BA' },
+  Cyprus: { emoji: '🇨🇾', alt: 'CY' },
+  Morocco: { emoji: '🇲🇦', alt: 'MA' },
+  Tunisia: { emoji: '🇹🇳', alt: 'TN' },
+  Jordan: { emoji: '🇯🇴', alt: 'JO' },
+  Lebanon: { emoji: '🇱🇧', alt: 'LB' },
+  Kuwait: { emoji: '🇰🇼', alt: 'KW' },
+  Qatar: { emoji: '🇶🇦', alt: 'QA' },
+  Bahrain: { emoji: '🇧🇭', alt: 'BH' },
+  Oman: { emoji: '🇴🇲', alt: 'OM' },
+  Yemen: { emoji: '🇾🇪', alt: 'YE' },
+  Ethiopia: { emoji: '🇪🇹', alt: 'ET' },
+  Ghana: { emoji: '🇬🇭', alt: 'GH' },
+  Libya: { emoji: '🇱🇾', alt: 'LY' },
+  Sudan: { emoji: '🇸🇩', alt: 'SD' },
+  Congo: { emoji: '🇨🇩', alt: 'CD' },
+  'Democratic Republic of Congo': { emoji: '🇨🇩', alt: 'CD' },
+  'Republic of the Congo': { emoji: '🇨🇬', alt: 'CG' },
+  Cameroon: { emoji: '🇨🇲', alt: 'CM' },
+  'Ivory Coast': { emoji: '🇨🇮', alt: 'CI' },
+  "Cote d'Ivoire": { emoji: '🇨🇮', alt: 'CI' },
+  Senegal: { emoji: '🇸🇳', alt: 'SN' },
+  Mali: { emoji: '🇲🇱', alt: 'ML' },
+  'Burkina Faso': { emoji: '🇧🇫', alt: 'BF' },
+  Niger: { emoji: '🇳🇪', alt: 'NE' },
+  Chad: { emoji: '🇹🇩', alt: 'TD' },
+  'Central African Republic': { emoji: '🇨🇫', alt: 'CF' },
+  Gabon: { emoji: '🇬🇦', alt: 'GA' },
+  'Equatorial Guinea': { emoji: '🇬🇶', alt: 'GQ' },
+  'South Sudan': { emoji: '🇸🇸', alt: 'SS' },
 };
 
 export function getCountryFlag(countryName: string): { emoji: string; alt: string } | null {
@@ -94,7 +154,7 @@ export function createFlagElement(countryName: string): HTMLElement | null {
   // Use flag-icons.css CDN for reliable flag images
   flagElement.src = `https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/flags/4x3/${countryCode}.svg`;
   flagElement.alt = flagData.emoji;
-  flagElement.title = countryName;
+  flagElement.title = `${countryName} - CrXpto Extension\nTo turn off flags: Go to Extension Settings`;
   flagElement.setAttribute('data-country', flagData.alt);
   flagElement.setAttribute('data-twitter-flag', 'true');
 
@@ -126,7 +186,10 @@ export function createFlagElement(countryName: string): HTMLElement | null {
     emojiElement.innerHTML = flagData.emoji;
     emojiElement.setAttribute('data-country', flagData.alt);
     emojiElement.setAttribute('data-twitter-flag', 'true');
-    emojiElement.setAttribute('title', countryName);
+    emojiElement.setAttribute(
+      'title',
+      `${countryName} - CrXpto Extension\nTo turn off flags: Go to Extension Settings`,
+    );
 
     emojiElement.style.cssText = `
       display: inline-block !important;

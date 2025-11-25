@@ -60,6 +60,12 @@ export const ChangeLog = () => {
       changes: ['🔥 Update popular coin.', '🔄 Update code package'],
       devComments: 'None',
     },
+    {
+      version: '0.2.5',
+      date: 'November 25, 2025',
+      changes: ['🔥 Flag for user.'],
+      devComments: 'I want to see my fav influencer country! xD',
+    },
   ];
 
   return (

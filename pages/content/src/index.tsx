@@ -977,6 +977,13 @@ async function addFlagToUsername(usernameElement: HTMLElement, screenName: strin
 async function processUsernames() {
   if (!isTwitterSite()) return;
 
+  // Check if flag display is enabled
+  const setting = await settingStorage.getSetting();
+  if (!setting.displayFlags) {
+    console.log('Flag display is disabled in settings');
+    return;
+  }
+
   // Find all tweet/article containers and user cells
   const containers = Array.from(
     document.querySelectorAll(
@@ -1059,6 +1066,13 @@ async function initTwitterFlags() {
 
   console.log('Twitter Location Flag extension initialized');
 
+  // Check if flag display is enabled
+  const setting = await settingStorage.getSetting();
+  if (!setting.displayFlags) {
+    console.log('Flag display is disabled in settings, skipping initialization');
+    return;
+  }
+
   // Load persistent cache
   await loadCache();
 
@@ -1086,6 +1100,45 @@ async function initTwitterFlags() {
 
   // Save cache periodically
   setInterval(saveCache, 30000); // Save every 30 seconds
+
+  // Listen for setting changes
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && changes.SETTING && changes.SETTING.newValue) {
+      const newDisplayFlags = changes.SETTING.newValue.displayFlags;
+      const oldDisplayFlags = changes.SETTING.oldValue?.displayFlags;
+
+      if (newDisplayFlags !== oldDisplayFlags) {
+        if (newDisplayFlags) {
+          console.log('Flag display enabled, processing usernames');
+          setTimeout(processUsernames, 1000);
+        } else {
+          console.log('Flag display disabled, removing existing flags');
+          removeAllFlags();
+        }
+      }
+    }
+  });
+}
+
+// Function to remove all existing flags from the page
+function removeAllFlags() {
+  const existingFlags = document.querySelectorAll('[data-twitter-flag]');
+  console.log(`Removing ${existingFlags.length} existing flags`);
+
+  existingFlags.forEach(flag => {
+    // Also remove wrapper if it exists and is empty after flag removal
+    const wrapper = flag.parentNode as HTMLElement;
+    flag.remove();
+    if (wrapper && wrapper.children.length === 0 && wrapper.getAttribute('class')?.includes('css-175oi2r')) {
+      wrapper.remove();
+    }
+  });
+
+  // Reset all processed flags
+  const processedElements = document.querySelectorAll(`[data-${TWITTER_FLAG_PROCESSED}]`);
+  processedElements.forEach(element => {
+    delete (element as HTMLElement).dataset[TWITTER_FLAG_PROCESSED];
+  });
 }
 
 const throttledInjecTicker = _.throttle(injectTicker, 5000);

@@ -9,6 +9,7 @@ export type Setting = {
   coinBalanceLowerThreshold: number;
   lastFetchWatchList: number;
   lastFetchCoinBalance: number;
+  displayFlags: boolean; // Added flag display toggle
 };
 
 const defaultSetting: Setting = {
@@ -18,6 +19,7 @@ const defaultSetting: Setting = {
   coinBalanceLowerThreshold: 10,
   lastFetchCoinBalance: 0,
   lastFetchWatchList: 0,
+  displayFlags: true, // Default to showing flags
 };
 
 function ensureSetting(obj: Partial<Setting>): Setting {
@@ -36,6 +38,7 @@ type SettingStorage = BaseStorage<Setting> & {
   setLowerThreshold: (number: number) => Promise<void>;
   setLastFetchWatchList: (number: number) => Promise<void>;
   setLastFetchCoinBalance: (number: number) => Promise<void>;
+  toggleDisplayFlags: () => Promise<void>;
 };
 
 const storage = createStorage<Setting>(
@@ -94,6 +97,12 @@ export const settingStorage: SettingStorage = {
     await storage.set(currentSetting => ({
       ...currentSetting,
       lastFetchWatchList: number,
+    }));
+  },
+  toggleDisplayFlags: async () => {
+    await storage.set(currentSetting => ({
+      ...currentSetting,
+      displayFlags: !currentSetting.displayFlags,
     }));
   },
 };

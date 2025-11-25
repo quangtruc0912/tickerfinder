@@ -2,7 +2,8 @@ import '@src/Options.css';
 import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
 import { exampleThemeStorage, settingStorage } from '@extension/storage';
 import { useState } from 'react';
-import { Container, Typography, Tabs, Tab, TextField, Button, Box, Divider } from '@mui/material';
+import { Container, Typography, Tabs, Tab, TextField, Button, Box, Divider, Tooltip, IconButton } from '@mui/material';
+import InfoIcon from '@mui/icons-material/Info';
 import type { ComponentPropsWithoutRef, SetStateAction } from 'react';
 import { ChangeLog } from './ChangeLog';
 import { Instructions } from './Intructions';
@@ -52,6 +53,66 @@ const Options = () => {
         <ToggleThemeButton>Toggle DARK / LIGHT Theme</ToggleThemeButton>
         <Divider sx={{ width: '100%', margin: '1.5rem 0' }} /> {/* Divider between sections */}
         <Box sx={{ padding: '2rem' }}>
+          {/* Toggle Display Flags Button */}
+          <Box sx={{ display: 'flex', alignItems: 'center', marginTop: '1rem' }}>
+            <Typography variant="h6" sx={{ color: isLight ? 'black' : 'white', marginRight: '1rem' }}>
+              Twitter Country Flags:
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => settingStorage.toggleDisplayFlags()}
+              sx={{
+                backgroundColor: setting.displayFlags ? 'green' : 'red',
+                color: 'white',
+                fontWeight: 'bold',
+                marginRight: '0.5rem',
+                '&:hover': {
+                  backgroundColor: setting.displayFlags ? 'darkgreen' : 'darkred',
+                },
+              }}>
+              {setting.displayFlags ? 'ON' : 'OFF'}
+            </Button>
+            <Tooltip
+              title={
+                <Box sx={{ padding: '8px' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                    Twitter Country Flags Feature:
+                  </Typography>
+                  <Typography variant="body2" sx={{ marginBottom: '8px' }}>
+                    Displays country flags next to usernames based on their profile location.
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                    Retry Mechanism:
+                  </Typography>
+                  <Typography variant="body2" sx={{ marginBottom: '4px' }}>
+                    • Failed users get 3 retry attempts
+                  </Typography>
+                  <Typography variant="body2" sx={{ marginBottom: '4px' }}>
+                    • 5-minute delay between retries
+                  </Typography>
+                  <Typography variant="body2" sx={{ marginBottom: '8px' }}>
+                    • Tracking data cleared after max attempts
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                    Rate Limiting:
+                  </Typography>
+                  <Typography variant="body2" sx={{ marginBottom: '4px' }}>
+                    • 2-second intervals between API requests
+                  </Typography>
+                  <Typography variant="body2" sx={{ marginBottom: '4px' }}>
+                    • Automatic handling of Twitter API limits
+                  </Typography>
+                  <Typography variant="body2">• Cached results for 30 days</Typography>
+                </Box>
+              }
+              placement="right"
+              arrow>
+              <IconButton size="small" sx={{ color: isLight ? 'black' : 'white' }}>
+                <InfoIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <Divider sx={{ width: '100%', margin: '1.5rem 0' }} /> {/* Divider between sections */}
           {/* Toggle Change Rate Button */}
           <Box sx={{ display: 'flex', alignItems: 'center', marginTop: '1rem' }}>
             <Typography variant="h6" sx={{ color: isLight ? 'black' : 'white', marginRight: '1rem' }}>
@@ -71,7 +132,6 @@ const Options = () => {
               {setting.changeRate ? 'ON' : 'OFF'}
             </Button>
           </Box>
-
           {/* Text and Color Picker in Same Line */}
           <Box sx={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
             <Typography variant="h6" sx={{ color: isLight ? 'black' : 'white', marginRight: '1rem' }}>
