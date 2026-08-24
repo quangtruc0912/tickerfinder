@@ -98,45 +98,82 @@ function getUniqueChains(items: WatchlistItem[], property: keyof WatchlistItem):
 
   return Array.from(uniqueSet);
 }
-const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
-  // const urlList = watchlist.map(item => item.url);
+const fetchCoinsData = async (watchlist: WatchlistItem[]): Promise<WatchlistItem[] | null> => {
   const chainList = getUniqueChains(watchlist, 'chainId');
+
   const results = await Promise.all(
     chainList.map(async chain => {
       const tokenAddresses = watchlist
         .filter(item => item.chainId === chain)
         .map(item => item.address)
         .join(',');
+
       const url = `https://api.dexscreener.com/tokens/v1/${chain}/${encodeURIComponent(tokenAddresses)}`;
+
       try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Failed to fetch data for ${chain}: ${response.statusText}`);
+        const response = await fetch(url, {
+          cache: 'no-store',
+        });
+
+        // 304 = don't update anything
+        if (response.status === 304) {
+          console.log(`${chain}: 304 Not Modified - skipping entire update`);
+          return null;
+        }
+
+        if (!response.ok) {
+          console.log(`${chain}: ${response.status} ${response.statusText} - skipping entire update`);
+          return null;
+        }
+
         const data = await response.json();
-        return data; // Return the chain name and the fetched data
+
+        // 200 + [] = don't update anything
+        if (!Array.isArray(data) || data.length === 0) {
+          console.log(`${chain}: empty response - skipping entire update`);
+          return null;
+        }
+
+        return data;
       } catch (error) {
-        console.error(`Error fetching data for ${chain}:`, error);
-        return null; // Return null for failed requests
+        console.error(`Error fetching ${chain}:`, error);
+        return null;
       }
     }),
-  ).then(result => {
-    const combined = result.flatMap(data => data);
-    return combined;
-  });
+  );
 
-  const watchListDataList: WatchlistItem[] = results.map((item: any) => ({
+  // IMPORTANT:
+  // If ANY chain failed / returned [] / returned 304,
+  // return null instead of returning partial data.
+  if (results.some(result => result === null)) {
+    return null;
+  }
+
+  const combined = results.flat();
+
+  if (combined.length === 0) {
+    return null;
+  }
+
+  const watchListDataList: WatchlistItem[] = combined.map((item: any) => ({
     guidID: '',
     address: item?.baseToken?.address,
-    chainId: item.chainId,
-    dexId: item.dexId,
-    changeRate24h: item.priceChange.h24 || 0,
-    changeRate5m: item.priceChange.m5 || 0,
-    changeRate1h: item.priceChange.h1 || 0,
-    changeRate6h: item.priceChange.h6 || 0,
-    price: item.priceUsd || 0,
-    name: item.baseToken.name,
-    symbol: item.baseToken.symbol,
-    url: item.url,
-    imageUrl: item.info?.imageUrl,
+    chainId: item?.chainId,
+    dexId: item?.dexId,
+
+    changeRate24h: item?.priceChange?.h24 ?? 0,
+    changeRate5m: item?.priceChange?.m5 ?? 0,
+    changeRate1h: item?.priceChange?.h1 ?? 0,
+    changeRate6h: item?.priceChange?.h6 ?? 0,
+
+    price: item?.priceUsd ?? 0,
+
+    name: item?.baseToken?.name,
+    symbol: item?.baseToken?.symbol,
+
+    url: item?.url,
+    imageUrl: item?.info?.imageUrl,
+
     isPriority: false,
     index: item?.index,
   }));
@@ -148,12 +185,12 @@ const fetchCoinsData = async (watchlist: WatchlistItem[]) => {
       item.imageUrl = matchingWatchlistItem.imageUrl;
       item.guidID = matchingWatchlistItem.guidID;
       item.index = matchingWatchlistItem.index;
+      item.isPriority = matchingWatchlistItem.isPriority;
     }
   });
 
   return watchListDataList;
 };
-
 const fetchData = async () => {
   if (isFetching) {
     isPendingUpdate = false; // Mark that we need to re-run fetchData
@@ -229,8 +266,22 @@ const fetchData = async () => {
       }
     }
 
-    let data = await fetchCoinsData(coins);
-    updatedData = updatedData.concat(data.map(item => ({ ...item, price: String(item.price) })));
+    const data = await fetchCoinsData(coins);
+
+    // IMPORTANT:
+    // null means DexScreener gave incomplete/invalid data.
+    // Do NOT overwrite storage.
+    if (data === null) {
+      console.log('DexScreener returned incomplete data. Keeping existing watchlist.');
+      return;
+    }
+
+    updatedData = updatedData.concat(
+      data.map(item => ({
+        ...item,
+        price: String(item.price),
+      })),
+    );
 
     updatedData.sort((a, b) => (a.index || 0) - (b.index || 0));
 
